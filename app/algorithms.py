@@ -176,7 +176,7 @@ STATUSES = ('Pending', 'Processing', 'Ready for Release', 'Processed')
 
 
 def calculate_score(record: dict, today: date) -> float:
-    """Group-proposed weighted score, NOT official CvSU policy.
+    """Group-proposed weighted score, NOT an official institutional priority policy.
 
     PS = 0.50*U + 0.30*W + 0.20*C, with every term on a 0..100 scale.
     """
@@ -219,18 +219,18 @@ class QueueEngine:
         self.records.append(record)
         self.arrivals.enqueue(record['public_id'])
         self.hash_table.put(record['public_id'], record)
-        if record['status'] == 'Pending':
+        if record['status'] == 'Pending' and not record.get('cancelled_at') and not record.get('declined_at'):
             self.heap.insert(priority_key(record), record['public_id'])
 
     def _rebuild_heap(self) -> None:
         self.heap.heapify(
             (priority_key(record), record['public_id'])
-            for record in self.records if record['status'] == 'Pending'
+            for record in self.records if record['status'] == 'Pending' and not record.get('cancelled_at') and not record.get('declined_at')
         )
 
     def refresh(self, today: date) -> None:
         for record in self.records:
-            if record['status'] == 'Pending':
+            if record['status'] == 'Pending' and not record.get('cancelled_at') and not record.get('declined_at'):
                 record['priority_score'] = calculate_score(record, today)
         self._rebuild_heap()
 

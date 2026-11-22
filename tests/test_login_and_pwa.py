@@ -24,7 +24,7 @@ def test_ui_delivers_login_logout_and_pwa_controls(tmp_path):
             assert part in app.text
         assert "navigate('login')" in app.text
         sw = client.get('/sw.js').text
-        assert 'queuewise-shell-v110' in sw
+        assert 'queuewise-shell-v111' in sw
         assert '/static/css/auth.css' in sw
         assert "url.pathname.startsWith('/api/')" in sw  # Never cache private API data
         manifest = client.get('/manifest.webmanifest').json()

@@ -23,6 +23,7 @@ def register_and_verify(client, name, number, email, role):
 def create_request(client, doc='Certificate of Grades', purpose='Scholarship paperwork'):
     body={'requester_name':'NOT MY NAME','requester_type':'Alumni','student_number':'OTHER-NO',
           'document_type':doc,'category':'Regular','purpose':purpose,
+          'date_reason':'The document is required for a scheduled academic deadline.',
           'deadline':(now().date()+timedelta(days=10)).isoformat()}
     response=client.post('/api/requests',json=body,headers=csrf(client))
     assert response.status_code==201,response.text
@@ -64,7 +65,7 @@ def test_frontend_document_request_defaults_to_private_list(tmp_path):
                       'Only documents you requested are listed here.'):
             assert token in src,token
         html=c.get('/').text
-        assert 'v=1.10' in html
+        assert 'v=1.11' in html
 
 
 def test_production_rejects_guest_submissions_without_verified_account(tmp_path):

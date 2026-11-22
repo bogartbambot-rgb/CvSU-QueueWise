@@ -27,14 +27,14 @@ def test_date_picker_is_embedded_in_request_form_for_both_roles(tmp_path):
         for text in ('function dateNeededWidget()', 'needed-calendar', 'name="deadline"',
                      'toggle-needed-picker', 'apply-needed-date', 'data-needed-day',
                      'function chooseNeededDate(', '${dateNeededWidget()}',
-                     'Date Needed', '<th>Date Needed</th>'):
+                     'Date Needed', 'Date Needed / Reason'):
             assert text in js, text
         assert 'Academic Calendar' not in html
         assert 'id="calendarNavItem"' not in html
         assert 'function calendarPage()' not in js
         assert 'go-calendar' not in js
-        assert 'v=1.10' in html
-        assert 'queuewise-shell-v110' in c.get('/sw.js').text
+        assert 'v=1.11' in html
+        assert 'queuewise-shell-v111' in c.get('/sw.js').text
         # Both Student and Alumni use a single role-neutral calendar widget.
         assert 'dateNeededWidget()' in js
         assert "${alumni?`<label" not in js
@@ -46,7 +46,7 @@ def test_selected_needed_date_persists_and_past_date_rejected(tmp_path):
         today=now().date()
         body={'requester_name':'Test Student','requester_type':'Student','student_number':'2026-33333',
               'document_type':'Certificate of Grades','category':'Regular',
-              'purpose':'For a scholarship application','deadline':(today+timedelta(days=6)).isoformat()}
+              'purpose':'For a scholarship application','date_reason':'My scholarship deadline is near.','deadline':(today+timedelta(days=6)).isoformat()}
         result=c.post('/api/requests',json=body,headers=csrf(c))
         assert result.status_code==201,result.text
         records=c.get('/api/my/requests').json()['requests']

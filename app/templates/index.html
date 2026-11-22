@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#155c38">
-  <meta name="description" content="CvSU QueueWise — a simulated registrar document request portal.">
+  <meta name="description" content="QueueWise — an academic document request and release portal.">
   <link rel="icon" href="/static/icons/icon-192.png" type="image/png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.10">
-  <link rel="stylesheet" href="/static/css/auth.css?v=1.10">
-  <title>CvSU QueueWise | Registrar Request Portal</title>
-  <script src="/static/js/app.js?v=1.10" defer></script>
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.11">
+  <link rel="stylesheet" href="/static/css/auth.css?v=1.11">
+  <title>QueueWise | Document Request Portal</title>
+  <script src="/static/js/app.js?v=1.11" defer></script>
 </head>
 <body>
   <svg class="icon-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -44,9 +44,9 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">
         <div class="brand-symbol" aria-hidden="true"><span>Q<span class="brand-leaf"></span></span></div>
-        <div class="brand-label"><strong>QueueWise<span class="brand-dot">.</span></strong><small>CvSU Registrar Portal</small></div>
+        <div class="brand-label"><strong>QueueWise<span class="brand-dot">.</span></strong><small>Document Request Portal</small></div>
       </div>
-      <div class="campus-card"><div class="campus-icon"><svg><use href="#i-shield"/></svg></div><div><strong>Cavite State University</strong><span>Don Severino de las Alas Campus</span></div></div>
+      <div class="campus-card"><div class="campus-icon"><svg><use href="#i-shield"/></svg></div><div><strong>Document Services</strong><span>Students · Alumni · Registrar</span></div></div>
       <div class="side-section">WORKSPACE</div>
       <nav class="side-nav" aria-label="Main navigation">
         <button class="nav-item active" data-nav="dashboard"><svg><use href="#i-home"/></svg><span>Dashboard</span></button>
@@ -61,7 +61,7 @@
           <button class="side-action" data-action="install" id="sidebarInstallButton"><svg><use href="#i-download"/></svg><span>Install QueueWise PWA</span></button>
         </div>
         <div class="sidebar-help"><span class="help-spark">✦</span><strong>Need a little guidance?</strong><p>Learn how to submit and track your requests in seconds.</p><button class="inline-link" data-action="help">Explore the guide <span>↗</span></button></div>
-        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.10</span></div>
+        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.11</span></div>
       </div>
     </aside>
     <div class="main-area">
@@ -70,10 +70,10 @@
         <div class="topbar-actions"><div class="live-indicator"><span class="online-pip"></span><span>System online</span></div><button class="top-install-button" id="installButton" data-action="install" title="Install QueueWise as an app"><svg><use href="#i-download"/></svg><span>Install app</span></button><button class="icon-button" id="helpButton" aria-label="How the system works" title="How the system works"><svg><use href="#i-help"/></svg></button><button class="icon-button" id="themeButton" aria-label="Switch theme" title="Switch light/dark mode"><svg id="themeIcon"><use href="#i-moon"/></svg></button><span class="topbar-divider"></span><button class="top-auth-button" id="headerAuthButton" data-action="login"><svg><use href="#i-log"/></svg><span id="headerAuthText">Sign in</span></button><button class="account-chip" data-action="profile"><span class="avatar" id="topAvatar">G</span><span class="account-label"><strong id="topName">Guest portal</strong><small id="topRole">Student / Alumni</small></span><span class="account-chevron">⌄</span></button></div>
       </header>
       <main class="page" id="page" tabindex="-1"><div class="initial-loader"><span class="spinner"></span><p>Preparing your workspace…</p></div></main>
-      <footer class="main-footer"><span>© <span id="year"></span> CvSU QueueWise · CPEN60 Academic Prototype</span><span>Built for clearer document request tracking.</span></footer>
+      <footer class="main-footer"><span>© <span id="year"></span> QueueWise · Academic Prototype</span><span>Built for clearer document request tracking.</span></footer>
     </div>
   </div>
-  <dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-help"/></svg></span><button class="icon-button" data-close="helpModal" aria-label="Close dialog"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><p class="eyebrow">YOUR QUICK START GUIDE</p><h2 id="helpTitle">How the system works</h2><p class="modal-subtitle">A simple walkthrough of QueueWise for students, alumni, and registrar staff.</p><div class="segmented help-tabs"><button class="selected" data-help-tab="student">Student / Alumni</button><button data-help-tab="staff">Registrar Staff</button></div><div id="helpContent"></div><div class="help-note"><svg><use href="#i-info"/></svg><p>This is a school project using simulated records. Request priorities are demonstration rules, not official CvSU policy.</p></div></div></dialog>
+  <dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-help"/></svg></span><button class="icon-button" data-close="helpModal" aria-label="Close dialog"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><p class="eyebrow">YOUR QUICK START GUIDE</p><h2 id="helpTitle">How the system works</h2><p class="modal-subtitle">A simple walkthrough of QueueWise for students, alumni, and registrar staff.</p><div class="segmented help-tabs"><button class="selected" data-help-tab="student">Student / Alumni</button><button data-help-tab="staff">Registrar Staff</button></div><div id="helpContent"></div><div class="help-note"><svg><use href="#i-info"/></svg><p>This is a school project using simulated records. Request priorities are demonstration rules, not an official registrar policy.</p></div></div></dialog>
   <dialog class="modal install-modal" id="installModal" aria-labelledby="installTitle">
     <div class="modal-heading"><span class="modal-icon"><svg><use href="#i-download"/></svg></span><button class="icon-button" data-close="installModal" aria-label="Close install instructions"><svg><use href="#i-close"/></svg></button></div>
     <div class="modal-body"><p class="eyebrow">PROGRESSIVE WEB APP</p><h2 id="installTitle">Install QueueWise</h2><p class="modal-subtitle">Use QueueWise in its own app window with an icon on your desktop or home screen.</p>
@@ -85,6 +85,8 @@
     </div>
   </dialog>
   <dialog class="modal success-modal" id="successModal" aria-labelledby="successTitle"><div class="modal-body success-body"><span class="success-check"><svg><use href="#i-check"/></svg></span><h2 id="successTitle">Request submitted!</h2><p>Your document request has been added to the queue. Save this reference number to check your request's status.</p><div class="success-id"><small>YOUR REFERENCE NUMBER</small><strong id="successId">REQ-0000</strong><button class="icon-button" data-action="copy-success" aria-label="Copy request ID" title="Copy request ID"><svg><use href="#i-document"/></svg></button></div><div class="success-actions"><button class="button primary" data-action="track-success">Track this request <svg><use href="#i-arrow"/></svg></button><button class="button light" data-close="successModal">Close</button></div></div></dialog>
+  <dialog class="modal workflow-modal" id="reviewModal" aria-labelledby="reviewTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-document"/></svg></span><button class="icon-button" data-close="reviewModal" aria-label="Close request review"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><h2 id="reviewTitle">Registrar request review</h2><p class="modal-subtitle">Read the deadline justification, decide, and schedule collection.</p><div id="reviewContent"></div></div></dialog>
+  <dialog class="modal workflow-modal cancel-dialog" id="cancelModal" aria-labelledby="cancelTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-info"/></svg></span><button class="icon-button" data-close="cancelModal" aria-label="Close cancellation"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><h2 id="cancelTitle">Cancel document request?</h2><p class="modal-subtitle">Request <strong id="cancelRequestId"></strong> will be closed. You can submit a new corrected request, but this cancellation cannot be undone.</p><form id="cancelRequestForm" class="form-stack"><label class="form-label">Reason (optional)<textarea id="cancelRequestReason" maxlength="300" rows="3" placeholder="e.g. I entered the wrong document type"></textarea></label><div class="review-button-pair"><button type="submit" id="confirmCancelButton" class="button primary">Confirm cancellation</button><button type="button" class="button outline" data-close="cancelModal">Keep request</button></div></form></div></dialog>
   <div id="toastArea" aria-live="polite" aria-atomic="false"></div>
 </body>
 </html>

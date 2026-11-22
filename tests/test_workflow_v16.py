@@ -18,7 +18,7 @@ def test_student_register_entry_on_login_and_calendar_ui(tmp_path):
         assert 'data-needed-day=' in text and 'apply-needed-date' in text
         html=c.get('/').text
         assert 'id="calendarNavItem"' not in html
-        assert 'v=1.10' in html
+        assert 'v=1.11' in html
         assert c.get('/manifest.webmanifest').status_code==200
 
 def test_only_registrar_can_approve_before_picking_up(tmp_path):

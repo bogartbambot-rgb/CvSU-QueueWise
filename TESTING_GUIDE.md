@@ -1,3 +1,20 @@
+# v1.11 automated regression and manual acceptance checks
+
+**Build result:** 62/62 pytest tests passed. `node --check` passed for the frontend code. Static JavaScript markup tests passed. Chromium navigation was unavailable in the build environment, so browser interaction must be checked on your deployed website.
+
+New acceptance cases: multiple unique documents per submission (same transaction ID), required Date Needed explanation, owner-only cancellation, immutable cancellation and decline records, admin-required decline explanation, separate approve/decline decision, pickup date/time scheduling, rejection of past schedules, rejection of early pickup confirmation, minimal public tracking without private decline explanations, and migrations for existing SQLite records.
+
+Run from the folder with `run.py`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Then follow the live acceptance steps in `UPGRADE_TO_V1_11.md`.
+
+---
+
 # QueueWise v1.9 — Functional and Regression Testing
 
 Run from the project directory (not the parent folder):

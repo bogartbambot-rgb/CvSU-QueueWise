@@ -35,6 +35,7 @@ def register(c, **kwargs):
 def submit(c, **kwargs):
     body=dict(requester_name='Spoofed Person', requester_type='Alumni', student_number='FAKE-99999',
               document_type='Certificate of Grades', category='Regular', purpose='Job application',
+              date_reason='The application deadline is approaching next week.',
               deadline=(now().date()+timedelta(days=15)).isoformat()) | kwargs
     return c.post('/api/requests', json=body, headers=csrf(c))
 
@@ -126,7 +127,14 @@ def test_registered_request_release_workflow(tmp_path):
         assert c.post(claim_url, headers=csrf(c)).status_code==409
         assert c.patch(f'/api/admin/requests/{request_id}/status',json={'status':'Processing'},headers=csrf(c)).status_code==200
         assert c.patch(f'/api/admin/requests/{request_id}/status',json={'status':'Ready for Release'},headers=csrf(c)).status_code==409
-        assert c.post(f'/api/admin/requests/{request_id}/approve',headers=csrf(c)).status_code==200
+        assert c.post(f'/api/admin/requests/{request_id}/decision',json={'decision':'approve'},headers=csrf(c)).status_code==200
+        pickup=(now()+timedelta(hours=2)).isoformat()
+        assert c.post(f'/api/admin/requests/{request_id}/schedule',json={'pickup_at':pickup,'note':'Bring an ID'},headers=csrf(c)).status_code==200
+        assert c.post(claim_url,headers=csrf(c)).status_code==409  # Not before the appointment
+        # Simulate an appointment that has passed, preserving audit data.
+        import sqlite3
+        with sqlite3.connect(c.app.state.db_path) as db:
+            db.execute('UPDATE requests SET pickup_at=? WHERE public_id=?', ((now()-timedelta(minutes=2)).isoformat(),request_id))
         assert c.post(claim_url,headers=csrf(c)).status_code==200
         assert c.post('/api/auth/logout',headers=csrf(c)).status_code==200
         assert c.post('/api/auth/requester-login',json={'email':'student@example.com','password':PASSWORD},headers=csrf(c)).status_code==200
@@ -142,5 +150,5 @@ def test_new_registration_ui_static_routes(tmp_path):
                      "view==='register'", 'data-auth-tab="staff"', 'id="requestForm"',
                      'function authFrame(', 'state.user?.role'):
             assert term in ui,term
-        assert 'v=1.10' in c.get('/').text
+        assert 'v=1.11' in c.get('/').text
         assert c.get('/manifest.webmanifest').status_code==200

@@ -1,7 +1,7 @@
-"""CvSU QueueWise API, PWA delivery, and staff-only registrar operations."""
+"""QueueWise API, PWA delivery, and staff-only registrar operations."""
 from __future__ import annotations
 
-from datetime import date, timedelta, datetime, timezone
+from datetime import date, datetime, timedelta, datetime, timezone
 import hmac
 import hashlib
 import logging
@@ -21,7 +21,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .algorithms import CATEGORIES, DOCUMENT_TYPES, QueueEngine
 from .mailer import EmailDeliveryError, sender_configured, send_verification_email
-from .storage import (connect, init_database, get_secret, now, verify_password,
+from .storage import (connect, init_database, get_secret, now, verify_password, attach_documents, MANILA,
                       hash_password, fetch_records, persist_scores,
                       insert_request, add_notification, add_event)
 
@@ -56,8 +56,10 @@ class NewRequest(BaseModel):
     student_number: str | None = Field(default=None, max_length=40)
     purpose: str | None = Field(default=None, max_length=240)
     document_type: str
+    document_types: list[str] | None = None
     category: str
     deadline: str
+    date_reason: str | None = Field(default=None, max_length=500)
 
 
 class RegisterPayload(BaseModel):
@@ -90,6 +92,20 @@ class ChangePassword(BaseModel):
 
 class ChangeStatus(BaseModel):
     status: Literal['Processing', 'Ready for Release', 'Processed']
+
+
+class DecisionPayload(BaseModel):
+    decision: Literal['approve', 'decline']
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class PickupSchedulePayload(BaseModel):
+    pickup_at: str
+    note: str | None = Field(default=None, max_length=500)
+
+
+class CancelPayload(BaseModel):
+    reason: str | None = Field(default=None, max_length=300)
 
 
 class SeedDemo(BaseModel):
@@ -193,8 +209,14 @@ def ensure_id(value: str):
 
 def display_request_status(record: dict) -> str:
     """Never disclose release readiness before explicit registrar approval."""
+    if record.get('cancelled_at'):
+        return 'Cancelled'
+    if record.get('declined_at'):
+        return 'Declined'
     if record.get('claimed_at'):
         return 'Claimed'
+    if record.get('pickup_at') and record.get('approved_at') and datetime.fromisoformat(record['pickup_at']) > now():
+        return 'Pickup Scheduled'
     if record.get('status') == 'Ready for Release' and not record.get('approved_at'):
         return 'Awaiting Approval'
     if record.get('status') == 'Processed' and not record.get('approved_at'):
@@ -210,7 +232,8 @@ def read_staff_snapshot(db) -> dict:
     persist_scores(db, records)
     ranked = engine.ranked()
     all_records = sorted(records, key=lambda rec: rec['arrival_number'], reverse=True)
-    counts = {status: sum(r['status'] == status for r in records)
+    active_records = [r for r in records if not r.get('cancelled_at') and not r.get('declined_at')]
+    counts = {status: sum(r['status'] == status for r in active_records)
               for status in ALLOWED_TRANSITIONS}
     claimed = sorted((r for r in records if r.get('claimed_at')),
                      key=lambda r: (r['claimed_at'], r['id']), reverse=True)
@@ -222,9 +245,11 @@ def read_staff_snapshot(db) -> dict:
         'next_id': engine.heap.peek(),
         'stats': {
             'total': len(records),
-            'pending': counts['Pending'],
+            'pending': len(engine.heap.items),
+            'declined': sum(bool(r.get('declined_at')) for r in records),
+            'cancelled': sum(bool(r.get('cancelled_at')) for r in records),
             'processing': counts['Processing'],
-            'ready': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') for r in records),
+            'ready': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') and (not r.get('pickup_at') or datetime.fromisoformat(r['pickup_at']) <= now()) for r in active_records),
             'awaiting_approval': sum(
                 (r['status'] == 'Processed' or r['status'] == 'Ready for Release')
                 and not r.get('approved_at') and not r.get('claimed_at')
@@ -232,7 +257,7 @@ def read_staff_snapshot(db) -> dict:
             ),
             'processed': counts['Processed'] - len(claimed),
             'claimed': len(claimed),
-            'ready_to_claim': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') for r in records),
+            'ready_to_claim': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') and (not r.get('pickup_at') or datetime.fromisoformat(r['pickup_at']) <= now()) for r in active_records),
             'students': sum(r.get('requester_type') == 'Student' for r in records),
             'alumni': sum(r.get('requester_type') == 'Alumni' for r in records),
             'unclassified': sum(r.get('requester_type') not in ('Student', 'Alumni') for r in records),
@@ -250,7 +275,7 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
     secret = get_secret(database)
     demo_password = os.environ.get('QUEUEWISE_ADMIN_PASSWORD', 'CvSU@2026Demo!')
     init_database(database, demo_password)
-    app = FastAPI(title='CvSU QueueWise', docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title='QueueWise', docs_url=None, redoc_url=None, openapi_url=None)
     app.state.db_path = database
     app.state.testing = testing
     app.state.email_outbox = []
@@ -499,9 +524,11 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
     @app.get('/api/my/requests')
     def my_requests(user=Depends(require_requester)):
         with connect(database) as db:
-            items = [dict(row) for row in db.execute("""SELECT public_id,document_type,category,purpose,deadline,
-                    priority_score,status,submission_date,updated_at,processed_at,claimed_at,approved_at
+            items = [dict(row) for row in db.execute("""SELECT id,public_id,document_type,category,purpose,deadline,date_reason,
+                    priority_score,status,submission_date,updated_at,processed_at,claimed_at,approved_at,
+                    decision_at,declined_at,declined_reason,cancelled_at,cancelled_reason,pickup_at,pickup_note
                     FROM requests WHERE portal_user_id=? ORDER BY id DESC""", (user['id'],))]
+            attach_documents(db, items)
         for item in items:
             item['status'] = display_request_status(item)
             item['approved_for_release'] = bool(item.get('approved_at'))
@@ -543,6 +570,18 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
             })
             if not (payload.purpose or '').strip():
                 fail(400, 'Please enter the purpose of your document request.')
+        documents = payload.document_types if payload.document_types is not None else [payload.document_type]
+        if not isinstance(documents, list) or not 1 <= len(documents) <= 5:
+            fail(400, 'Select between one and five documents.')
+        if any(not isinstance(doc, str) or doc not in DOCUMENT_TYPES for doc in documents):
+            fail(400, 'One or more selected document types are invalid.')
+        if len(set(documents)) != len(documents) or documents[0] != payload.document_type:
+            fail(400, 'Document selections must be unique and match the primary document.')
+        date_reason = ' '.join((payload.date_reason or '').split())
+        if registered and not 10 <= len(date_reason) <= 500:
+            fail(400, 'Explain why you need the documents on that date (10–500 characters).')
+        if date_reason and not 10 <= len(date_reason) <= 500:
+            fail(400, 'Date Needed reason must be 10–500 characters.')
         name, deadline, submitted = validate_new_request(payload)
         student_number = validated_student_number(payload.student_number) if payload.student_number else None
         purpose = ' '.join(payload.purpose.split()) if payload.purpose else None
@@ -556,7 +595,8 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                                         category=payload.category, deadline=deadline,
                                         submission_date=submitted, requester_type=payload.requester_type or 'Not specified',
                                         student_number=student_number, purpose=purpose,
-                                        portal_user_id=registered['id'] if registered else None)
+                                        portal_user_id=registered['id'] if registered else None,
+                                        documents=documents, date_reason=date_reason or None)
                 inserted = db.execute('SELECT * FROM requests WHERE public_id=?', (result['id'],)).fetchone()
                 engine.add_record(dict(inserted) | {'arrival_number': inserted['id']})
                 if not engine.heap.valid():
@@ -577,11 +617,25 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
             record = engine.hash_table.get(public_id)
             if record is None:
                 fail(404, 'No request was found with that ID.')
+            # ID-only public tracking intentionally hides reasons, document
+            # names, pickup instructions, and appointment details. A verified
+            # account can see its own detailed history via /api/my/*.
+            public_messages = {
+                'Pending': 'Request received.',
+                'Processing': 'Request processing started.',
+                'Processed': 'Document preparation updated.',
+                'Approved': 'Registrar accepted request for preparation.',
+                'Ready for Release': 'The registrar updated release readiness.',
+                'Claimed': 'Collection confirmed.',
+                'Declined': 'Request declined. Sign in for the explanation.',
+                'Cancelled': 'Request cancelled.',
+            }
             events = [
-                {'status': ('Awaiting Approval' if row['status'] == 'Ready for Release' and not record.get('approved_at') else row['status']),
-                 'message': ('Waiting for registrar release approval.' if row['status'] == 'Ready for Release' and not record.get('approved_at') else row['message']),
+                {'status': ('Awaiting Approval' if row['status']=='Ready for Release' and not record.get('approved_at')
+                            else row['status']),
+                 'message': public_messages.get(row['status'], 'Request status updated.'),
                  'created_at': row['created_at']}
-                for row in db.execute('SELECT status,message,created_at FROM request_events WHERE request_id=? ORDER BY id',
+                for row in db.execute('SELECT status,created_at FROM request_events WHERE request_id=? ORDER BY id',
                                       (record['id'],))
             ]
         return {'request': {'id': record['public_id'],
@@ -615,8 +669,11 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                 persist_scores(db, engine.records)
                 chosen = engine.process_next()
                 timestamp = now().isoformat()
-                db.execute('UPDATE requests SET status=?,processed_at=?,updated_at=? WHERE id=? AND status=?',
-                           ('Processed', timestamp, timestamp, chosen['id'], 'Pending'))
+                result = db.execute('''UPDATE requests SET status=?,processed_at=?,updated_at=?
+                    WHERE id=? AND status='Pending' AND declined_at IS NULL AND cancelled_at IS NULL''',
+                    ('Processed', timestamp, timestamp, chosen['id']))
+                if result.rowcount != 1:
+                    fail(409, 'Request changed while processing. Refresh and retry.')
                 add_event(db, chosen['id'], 'Awaiting Approval', 'Registrar processed the request; release requires administrator approval')
                 add_notification(db, 'Awaiting approval', f'{chosen["public_id"]} was processed; release approval is still required.', chosen['public_id'])
                 db.execute('COMMIT')
@@ -634,8 +691,8 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                 record = db.execute('SELECT * FROM requests WHERE public_id=?', (public_id,)).fetchone()
                 if record is None:
                     fail(404, 'Request not found.')
-                if record['claimed_at'] is not None:
-                    fail(409, 'This document has already been claimed. Its status is final.')
+                if record['claimed_at'] is not None or record['cancelled_at'] or record['declined_at']:
+                    fail(409, 'Claimed, cancelled, or declined requests cannot be modified.')
                 if payload.status == 'Ready for Release':
                     fail(409, 'Release requires explicit approval. Use Approve for Release instead.')
                 if payload.status not in ALLOWED_TRANSITIONS[record['status']]:
@@ -652,6 +709,114 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                 raise
         return {'message': f'{public_id} updated to {payload.status}.'}
 
+    @app.post('/api/my/requests/{public_id}/cancel', dependencies=[Depends(require_csrf)])
+    def cancel_request(public_id: str, payload: CancelPayload, request: Request,
+                       user=Depends(require_requester)):
+        ensure_id(public_id)
+        reason = ' '.join((payload.reason or '').split())
+        if reason and len(reason) < 5:
+            fail(400, 'Cancellation explanation must be at least five characters when provided.')
+        timestamp = now().isoformat()
+        with connect(database) as db:
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                record = db.execute('SELECT * FROM requests WHERE public_id=? AND portal_user_id=?',
+                                    (public_id, user['id'])).fetchone()
+                if record is None:
+                    fail(404, 'Request not found in your account.')
+                if record['cancelled_at'] or record['declined_at'] or record['claimed_at']:
+                    fail(409, 'This request is already closed.')
+                if record['approved_at'] or record['pickup_at']:
+                    fail(409, 'This request is already scheduled for release. Contact the registrar for help.')
+                db.execute('UPDATE requests SET cancelled_at=?,cancelled_reason=?,updated_at=? WHERE id=?',
+                           (timestamp, reason or 'Cancelled by requester', timestamp, record['id']))
+                add_event(db, record['id'], 'Cancelled', f'Requester cancelled the request: {reason or "No reason provided"}')
+                add_notification(db, 'Request cancelled', f'{public_id} was cancelled by its requester.', public_id)
+                db.execute('COMMIT')
+            except Exception:
+                db.execute('ROLLBACK')
+                raise
+        return {'message': f'{public_id} cancelled. You may submit a corrected new request.'}
+
+    @app.post('/api/admin/requests/{public_id}/decision', dependencies=[Depends(require_csrf)])
+    def decide_request(public_id: str, payload: DecisionPayload, request: Request,
+                       user=Depends(require_staff)):
+        ensure_id(public_id)
+        reason = ' '.join((payload.reason or '').split())
+        if payload.decision == 'decline' and not 10 <= len(reason) <= 500:
+            fail(400, 'Provide a decline reason (10–500 characters) so the requester understands why.')
+        timestamp = now().isoformat()
+        with connect(database) as db:
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                record = db.execute('SELECT * FROM requests WHERE public_id=?', (public_id,)).fetchone()
+                if record is None:
+                    fail(404, 'Request not found.')
+                if record['claimed_at'] or record['cancelled_at'] or record['declined_at'] or record['approved_at']:
+                    fail(409, 'This request has already been closed or scheduled.')
+                if record['decision_at']:
+                    fail(409, 'Request has already been approved. It cannot be decided again.')
+                if payload.decision == 'decline':
+                    db.execute('UPDATE requests SET declined_at=?,declined_reason=?,updated_at=? WHERE id=?',
+                               (timestamp, reason, timestamp, record['id']))
+                    add_event(db, record['id'], 'Declined', f'Registrar declined the request. Reason: {reason}')
+                    add_notification(db, 'Request declined', f'{public_id} declined: {reason}', public_id)
+                    message = f'{public_id} declined. The requester can see your reason.'
+                else:
+                    # Approval of the request is separate from pickup scheduling.
+                    # Existing status values remain compatible with old SQLite DBs.
+                    db.execute('UPDATE requests SET decision_at=?,decision_by=?,status=?,updated_at=? WHERE id=?',
+                               (timestamp, user['username'], 'Processing' if record['status']=='Pending' else record['status'], timestamp, record['id']))
+                    add_event(db, record['id'], 'Approved', 'Registrar approved the request for document preparation.')
+                    add_notification(db, 'Request approved', f'{public_id} was approved for processing. Pickup date is not yet scheduled.', public_id)
+                    message = f'{public_id} approved for processing. Schedule collection when ready.'
+                db.execute('COMMIT')
+            except Exception:
+                db.execute('ROLLBACK')
+                raise
+        return {'message': message}
+
+    @app.post('/api/admin/requests/{public_id}/schedule', dependencies=[Depends(require_csrf)])
+    def schedule_collection(public_id: str, payload: PickupSchedulePayload, request: Request,
+                            user=Depends(require_staff)):
+        ensure_id(public_id)
+        try:
+            appointment = datetime.fromisoformat(payload.pickup_at)
+            appointment = (appointment.replace(tzinfo=MANILA) if appointment.tzinfo is None
+                           else appointment.astimezone(MANILA))
+        except (ValueError, TypeError):
+            fail(400, 'Choose a valid pickup date and time.')
+        if appointment < now() or appointment > now() + timedelta(days=365):
+            fail(400, 'Pickup must be in the future and within 365 days.')
+        note = ' '.join((payload.note or '').split())
+        timestamp = now().isoformat()
+        with connect(database) as db:
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                record = db.execute('SELECT * FROM requests WHERE public_id=?', (public_id,)).fetchone()
+                if record is None:
+                    fail(404, 'Request not found.')
+                if record['cancelled_at'] or record['declined_at'] or record['claimed_at'] or record['approved_at']:
+                    fail(409, 'Cancelled, declined, claimed or scheduled requests cannot be rescheduled here.')
+                if not record['decision_at']:
+                    fail(409, 'First approve the request before setting a pickup schedule.')
+                if record['status'] not in ('Processing', 'Processed', 'Ready for Release'):
+                    fail(409, 'Prepare the documents before scheduling pickup.')
+                db.execute('''UPDATE requests SET status='Ready for Release',approved_at=?,approved_by=?,
+                    pickup_at=?,pickup_note=?,updated_at=? WHERE id=?''',
+                    (timestamp,user['username'],appointment.isoformat(),note or None,timestamp,record['id']))
+                readable = appointment.strftime('%B %d, %Y at %I:%M %p')
+                add_event(db, record['id'], 'Ready for Release',
+                          f'Registrar scheduled document collection for {readable}.' + (f' Instructions: {note}' if note else ''))
+                add_notification(db, 'Pickup scheduled',
+                                 f'{public_id} is ready for release on {readable}.',public_id)
+                db.execute('COMMIT')
+            except Exception:
+                db.execute('ROLLBACK')
+                raise
+        return {'message': f'Pickup for {public_id} scheduled on {readable}.',
+                'pickup_at': appointment.isoformat()}
+
     @app.post('/api/admin/requests/{public_id}/approve', dependencies=[Depends(require_csrf)])
     def approve_for_release(public_id: str, request: Request, user=Depends(require_staff)):
         """Only the registrar can authorize pickup; record a persistent audit trail."""
@@ -659,12 +824,14 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
         with connect(database) as db:
             db.execute('BEGIN IMMEDIATE')
             try:
-                record = db.execute('SELECT id,status,claimed_at,approved_at FROM requests WHERE public_id=?',
+                record = db.execute('SELECT id,status,claimed_at,approved_at,decision_at,portal_user_id,cancelled_at,declined_at FROM requests WHERE public_id=?',
                                     (public_id,)).fetchone()
                 if record is None:
                     fail(404, 'Request not found.')
-                if record['claimed_at']:
-                    fail(409, 'Document was already collected. Approval cannot be changed.')
+                if record['claimed_at'] or record['cancelled_at'] or record['declined_at']:
+                    fail(409, 'Closed requests cannot be approved for release.')
+                if record['portal_user_id'] is not None:
+                    fail(409, 'Use Approve Request first, then Schedule Pickup for registered users.')
                 if record['approved_at']:
                     fail(409, 'This document has already been approved for release.')
                 if record['status'] not in ('Processing', 'Processed', 'Ready for Release'):
@@ -694,14 +861,18 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
         with connect(database) as db:
             db.execute('BEGIN IMMEDIATE')
             try:
-                record = db.execute('SELECT id,status,claimed_at,approved_at FROM requests WHERE public_id=?',
+                record = db.execute('SELECT id,status,claimed_at,approved_at,pickup_at,portal_user_id,cancelled_at,declined_at FROM requests WHERE public_id=?',
                                     (public_id,)).fetchone()
                 if record is None:
                     fail(404, 'Request not found.')
-                if record['claimed_at'] is not None:
-                    fail(409, 'This document has already been claimed.')
+                if record['claimed_at'] is not None or record['cancelled_at'] or record['declined_at']:
+                    fail(409, 'This request has already been closed.')
                 if record['status'] != 'Ready for Release' or not record['approved_at']:
                     fail(409, 'The document needs explicit admin approval before it can be claimed.')
+                if record['portal_user_id'] is not None and not record['pickup_at']:
+                    fail(409, 'A registrar-assigned pickup appointment is required.')
+                if record['pickup_at'] and datetime.fromisoformat(record['pickup_at']) > now():
+                    fail(409, 'Collection cannot be confirmed before the scheduled pickup date and time.')
                 timestamp = now().isoformat()
                 # SQLite original status constraint remains valid; claimed_at
                 # differentiates physical pickup from simple processing.

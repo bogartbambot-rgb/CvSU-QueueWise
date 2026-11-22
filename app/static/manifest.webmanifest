@@ -1,7 +1,7 @@
 {
-  "name": "CvSU QueueWise — Document Request Portal",
+  "name": "QueueWise — Document Request Portal",
   "short_name": "QueueWise",
-  "description": "A simulated academic document request processing PWA for Cavite State University coursework.",
+  "description": "A simulated academic document request processing PWA for academic coursework.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

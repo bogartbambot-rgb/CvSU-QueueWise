@@ -69,7 +69,7 @@ def make_verification_url(token: str, testing: bool = False) -> str:
 def _message_text(name: str, url: str) -> str:
     return (
         f'Hello {name},\n\n'
-        'Thank you for registering with CvSU QueueWise.\n'
+        'Thank you for registering with QueueWise.\n'
         'Please verify your email address by opening this link, then pressing Verify Email:\n\n'
         f'{url}\n\n'
         'This link expires in 24 hours and can be used once.\n'
@@ -104,9 +104,9 @@ def _send_gmail(email: str, name: str, url: str) -> None:
             raise EmailDeliveryError('Google did not return an access token. Re-authorize the Gmail sender.')
 
         message = EmailMessage()
-        message['From'] = formataddr(('CvSU QueueWise', sender))
+        message['From'] = formataddr(('QueueWise', sender))
         message['To'] = email
-        message['Subject'] = 'Verify your email — CvSU QueueWise'
+        message['Subject'] = 'Verify your email — QueueWise'
         message.set_content(_message_text(name, url))
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode('ascii')
         payload = json.dumps({'raw': raw}).encode('utf-8')
@@ -139,7 +139,7 @@ def _send_resend(email: str, name: str, url: str) -> None:
         raise EmailDeliveryError('Configure the Resend sender and API key in Railway.')
     payload = json.dumps({
         'from': sender, 'to': [email],
-        'subject': 'Verify your email — CvSU QueueWise', 'text': _message_text(name, url),
+        'subject': 'Verify your email — QueueWise', 'text': _message_text(name, url),
     }).encode('utf-8')
     request = Request(
         'https://api.resend.com/emails', data=payload, method='POST',

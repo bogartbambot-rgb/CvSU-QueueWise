@@ -26,7 +26,7 @@ def test_both_roles_need_date_kept_for_admin(tmp_path):
         for role in ['Student','Alumni']:
             user=register_login(c,role)
             req={'requester_name':user['full_name'],'requester_type':role,'student_number':user['student_number'],
-                 'document_type':'Certificate of Grades','category':'Regular','purpose':'Needed for an application',
+                 'document_type':'Certificate of Grades','category':'Regular','purpose':'Needed for an application','date_reason':'My application closes next week.',
                  'deadline':date_needed}
             response=c.post('/api/requests',json=req,headers=csrf(c))
             assert response.status_code==201,response.text

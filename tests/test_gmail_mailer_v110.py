@@ -51,7 +51,7 @@ def test_gmail_oauth_send_only_link_and_mime(monkeypatch):
         msg = BytesParser(policy=policy.default).parsebytes(mime_bytes)
         assert msg['From'].addresses[0].addr_spec == 'registrar.sender@gmail.com'
         assert msg['To'].addresses[0].addr_spec == 'student@example.com'
-        assert msg['Subject'] == 'Verify your email — CvSU QueueWise'
+        assert msg['Subject'] == 'Verify your email — QueueWise'
         assert '#verify-email?token=mock-token' in msg.get_content()
         return FakeResponse({'id': 'mock-google-message-id'})
 

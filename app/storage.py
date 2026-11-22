@@ -152,6 +152,24 @@ def init_database(path: str, demo_password: str):
             sent_count INTEGER NOT NULL DEFAULT 1,
             window_started_at TEXT NOT NULL
         )''')
+        for field, definition in (
+            ('date_reason', 'TEXT'),
+            ('decision_at', 'TEXT'), ('decision_by', 'TEXT'),
+            ('declined_at', 'TEXT'), ('declined_reason', 'TEXT'),
+            ('cancelled_at', 'TEXT'), ('cancelled_reason', 'TEXT'),
+            ('pickup_at', 'TEXT'), ('pickup_note', 'TEXT')
+        ):
+            if field not in columns:
+                db.execute(f'ALTER TABLE requests ADD COLUMN {field} {definition}')
+        # One request can contain several different documents. Old rows are
+        # migrated as single-item requests, without modifying their IDs.
+        db.execute('''CREATE TABLE IF NOT EXISTS request_documents (
+            request_id INTEGER NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
+            document_type TEXT NOT NULL,
+            PRIMARY KEY (request_id, document_type)
+        )''')
+        db.execute('''INSERT OR IGNORE INTO request_documents(request_id,document_type)
+                      SELECT id,document_type FROM requests''')
         db.execute('CREATE INDEX IF NOT EXISTS idx_requests_portal_user ON requests(portal_user_id)')
         existing = db.execute("SELECT id FROM users WHERE username='admin'").fetchone()
         if existing is None:
@@ -167,14 +185,25 @@ def init_database(path: str, demo_password: str):
                 raise
 
 
+def attach_documents(db, records: list[dict]) -> list[dict]:
+    docs: dict[int, list[str]] = {}
+    for row in db.execute('SELECT request_id,document_type FROM request_documents ORDER BY rowid'):
+        docs.setdefault(row['request_id'], []).append(row['document_type'])
+    for item in records:
+        item['documents'] = docs.get(item['id'], [item['document_type']])
+    return records
+
+
 def fetch_records(db) -> list[dict]:
-    return [dict(row) | {'arrival_number': row['id']} for row in db.execute('SELECT * FROM requests ORDER BY id')]
+    records = [dict(row) | {'arrival_number': row['id']}
+               for row in db.execute('SELECT * FROM requests ORDER BY id')]
+    return attach_documents(db, records)
 
 
 def persist_scores(db, records: list[dict]):
     db.executemany(
         'UPDATE requests SET priority_score=? WHERE id=?',
-        [(record['priority_score'], record['id']) for record in records if record['status'] == 'Pending']
+        [(record['priority_score'], record['id']) for record in records if record['status'] == 'Pending' and not record.get('cancelled_at') and not record.get('declined_at')]
     )
 
 
@@ -195,7 +224,8 @@ def add_event(db, request_pk: int, status: str, message: str):
 def insert_request(db, *, name: str, document_type: str, category: str, deadline: str,
                    submission_date: str, requester_type: str = 'Not specified', demo: bool = False,
                    student_number: str | None = None, purpose: str | None = None,
-                   portal_user_id: int | None = None) -> dict:
+                   portal_user_id: int | None = None, documents: list[str] | None = None,
+                   date_reason: str | None = None) -> dict:
     from .algorithms import calculate_score
     from datetime import date
     if requester_type not in ('Student', 'Alumni', 'Not specified'):
@@ -205,13 +235,15 @@ def insert_request(db, *, name: str, document_type: str, category: str, deadline
     score = calculate_score(preview, date.fromisoformat(submission_date))
     cursor = db.execute('''
         INSERT INTO requests (requester_name,document_type,category,requester_type,submission_date,
-                              deadline,priority_score,created_at,updated_at,demo,student_number,purpose,portal_user_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                              deadline,priority_score,created_at,updated_at,demo,student_number,purpose,portal_user_id,date_reason)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ''', (name, document_type, category, requester_type, submission_date, deadline, score,
-          timestamp, timestamp, int(demo),student_number,purpose,portal_user_id))
+          timestamp, timestamp, int(demo),student_number,purpose,portal_user_id,date_reason))
     pk = cursor.lastrowid
     public_id = f'REQ-{pk:04d}'
     db.execute('UPDATE requests SET public_id=? WHERE id=?', (public_id, pk))
+    for doc in (documents or [document_type]):
+        db.execute('INSERT INTO request_documents(request_id,document_type) VALUES (?,?)', (pk, doc))
     add_event(db, pk, 'Pending', 'Request submitted successfully')
     return {'id': public_id, 'score': round(score, 2), 'status': 'Pending'}
 
