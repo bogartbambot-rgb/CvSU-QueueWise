@@ -12,7 +12,7 @@ Run from the project directory (not the parent folder):
 ## Step-by-step acceptance checks
 
 1. **Login / Registration landing:** Open `/#login`; confirm visible **Register as Student**, **Register as Alumni**, and separate **Registrar** login tab.
-2. **Student registration:** Create an account. In a test environment, use the isolated test outbox; on Railway, configure Resend sender credentials. Before email verification, requester login must be blocked. Open verification link to activate the account.
+2. **Student registration:** Create an account. In a test environment, use the isolated test outbox; on Railway, configure the Gmail API OAuth sender credentials. Before email verification, requester login must be blocked. Open verification link to activate the account.
 3. **Student landing/dashboard:** After login, see Student-specific greeting, Dashboard, Document Request, Notifications and Profile. **No Academic Calendar navigation** should appear.
 4. **Student request:** Document Request → New Request. Fill document, category, purpose. Under **Date Needed**, click **Choose date**. The calendar opens **inside the form**. Select a future day, click **Use this date**. Form fields must remain filled. Submit and save the generated request ID.
 5. **Alumni registration/dashboard:** Create and verify a separate Alumni account, then log in. The portal labels it Alumni, and the **same inline Date Needed calendar** is available in its New Request form.

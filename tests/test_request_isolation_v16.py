@@ -64,7 +64,7 @@ def test_frontend_document_request_defaults_to_private_list(tmp_path):
                       'Only documents you requested are listed here.'):
             assert token in src,token
         html=c.get('/').text
-        assert 'v=1.9' in html
+        assert 'v=1.10' in html
 
 
 def test_production_rejects_guest_submissions_without_verified_account(tmp_path):

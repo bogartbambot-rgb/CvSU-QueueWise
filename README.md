@@ -1,4 +1,4 @@
-# CvSU QueueWise v1.9 — All-in-One Full-Stack PWA
+# CvSU QueueWise v1.10 — Gmail API Email Verification v1.9 — All-in-One Full-Stack PWA
 
 **Python FastAPI · SQLite · Student / Alumni · Registrar Admin · Email verification · Inline Date Needed Calendar**
 
@@ -47,15 +47,15 @@ If port 8000 is already occupied, close the previous server or run `python -m uv
 6. Only that account's own requests appear under **My Requests** and own notifications. The staff dashboard can see every request and the selected date.
 7. The registrar processes the request, explicitly approves it for release, and records **Claimed** after document pickup. Requests remain searchable after processing.
 
-**Real email sending requires setup:** Configure `RESEND_API_KEY`, `QUEUEWISE_EMAIL_FROM` (using a sender/domain authorized in Resend) and `QUEUEWISE_PUBLIC_URL` with the actual public **HTTPS** Railway URL. Without this configuration, new registrations return a clear error instead of pretending an email was sent. Automated tests use an isolated simulated email outbox; they do **not** send live messages. The account verification step does not verify a person's actual CvSU student/alumni identity.
+**Real email sending requires setup:** Gmail API is now supported. Configure `QUEUEWISE_EMAIL_PROVIDER=gmail`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_SENDER_EMAIL`, and `QUEUEWISE_PUBLIC_URL` with the actual public **HTTPS** Railway URL. Optional Resend sending remains supported when explicitly selected and properly configured. Without this configuration, new registrations return a clear error instead of pretending an email was sent. Automated tests use an isolated simulated email outbox; they do **not** send live messages. The account verification step does not verify a person's actual CvSU student/alumni identity.
 
 ## SQLite and Railway
 
 - The SQLite database is created at `instance/queuewise.db` by default, and can be opened locally with **DB Browser for SQLite**. DB Browser is an editor, not a database host.
 - For Railway, attach a **persistent Volume** at `/data`, and set `QUEUEWISE_DB_PATH=/data/queuewise.db`. Keep the same volume connected across deployments. Use a single web-service replica with this SQLite file.
 - Set Railway Start Command to `python run.py` or use the included `railway.toml`. `HOST=0.0.0.0`; Railway provides `PORT`.
-- Set `QUEUEWISE_HTTPS=1`, a random `QUEUEWISE_SECRET_KEY`, a strong `QUEUEWISE_ADMIN_PASSWORD`, and the Resend variables listed above.
-- See **[`RAILWAY_DEPLOY_GUIDE.md`](RAILWAY_DEPLOY_GUIDE.md)** and **[`UPGRADE_TO_V1_8.md`](UPGRADE_TO_V1_8.md)** for complete commands and safe migration instructions.
+- Set `QUEUEWISE_HTTPS=1`, a random `QUEUEWISE_SECRET_KEY`, a strong `QUEUEWISE_ADMIN_PASSWORD`, and the Gmail API variables listed above.
+- See **[`RAILWAY_DEPLOY_GUIDE.md`](RAILWAY_DEPLOY_GUIDE.md)** and **[`UPGRADE_TO_V1_10.md`](UPGRADE_TO_V1_10.md)** for complete commands and safe migration instructions.
 
 **Existing SQLite data:** The app automatically migrates earlier schemas without wiping request history. Make a backup before upgrading. Older anonymous requests are not automatically attached to a newly registered student/alumni account; doing that without verifying ownership would be unsafe.
 
@@ -66,7 +66,7 @@ If port 8000 is already occupied, close the previous server or run `python -m uv
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**50 automated tests passed** at package creation, covering data structures, status transitions, admin permission, registration, email verification, account isolation, SQLite migrations, date validation, and admin visibility of Date Needed. A separate browser-rendered frontend smoke check verified inline calendar date selection with Student and Alumni UI and retained form fields. **Actual email delivery and Railway deployment still require your own provider credentials and live deployment checks.**
+**56 automated tests passed** for v1.10 at package creation, covering data structures, status transitions, admin permission, registration, email verification, account isolation, SQLite migrations, date validation, and admin visibility of Date Needed. A separate browser-rendered frontend smoke check verified inline calendar date selection with Student and Alumni UI and retained form fields. **Actual email delivery and Railway deployment still require your own provider credentials and live deployment checks.**
 
 ## Key design limitations
 

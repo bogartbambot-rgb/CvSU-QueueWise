@@ -1,5 +1,5 @@
 /* Only static files and a generic offline screen are cached. Never cache API/private data. */
-const CACHE = 'queuewise-shell-v19';
+const CACHE = 'queuewise-shell-v110';
 const SHELL = ['/','/offline','/static/css/styles.css','/static/css/auth.css','/static/js/app.js','/static/icons/icon-192.png','/static/icons/icon-512.png','/manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

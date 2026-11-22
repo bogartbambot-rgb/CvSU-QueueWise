@@ -58,7 +58,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ## Email verification on live Railway
 
-For real Student/Alumni verification email, also set `RESEND_API_KEY`, `QUEUEWISE_EMAIL_FROM` (verified sender/domain in Resend), and `QUEUEWISE_PUBLIC_URL` (your actual public HTTPS Railway domain). Without all three, registration will return a configuration error; automated tests do not send real mail.
+For real Student/Alumni verification emails through Gmail API, set `QUEUEWISE_EMAIL_PROVIDER=gmail`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_SENDER_EMAIL`, and `QUEUEWISE_PUBLIC_URL` (the actual public HTTPS Railway domain). Without all three, registration will return a configuration error; automated tests do not send real mail.
 
 ## 3. Very important SQLite notes
 

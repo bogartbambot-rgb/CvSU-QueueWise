@@ -353,7 +353,7 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
     def register_requester(payload: RegisterPayload, request: Request):
         # Never silently create an account that cannot receive an activation email.
         if not sender_configured(testing):
-            fail(503, 'Email verification is not configured. Ask the administrator to set Resend variables in Railway.')
+            fail(503, 'Email verification is not configured. Ask the administrator to set Gmail API credentials and the public URL in Railway.')
         name = normalize_name(payload.full_name)
         number = validated_student_number(payload.student_number)
         email = validated_email(payload.email)
@@ -393,7 +393,7 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
             # Allow an immediate retry if delivery failed; tell the user explicitly.
             with connect(database) as db:
                 db.execute('DELETE FROM email_verification_tokens WHERE portal_user_id=?', (user_id,))
-            fail(503, f'Account saved but no verification email was sent. {exc} Use Resend verification email after configuration.')
+            fail(503, f'Account saved but no verification email was sent. {exc} Use the resend verification option after checking email settings.')
         return {'message': 'Registration received. Check your inbox to verify your email before signing in.',
                 'requires_verification': True,
                 'user': {'role': payload.account_type, 'email': email, 'student_number': number}}

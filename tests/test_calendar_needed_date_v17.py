@@ -33,8 +33,8 @@ def test_date_picker_is_embedded_in_request_form_for_both_roles(tmp_path):
         assert 'id="calendarNavItem"' not in html
         assert 'function calendarPage()' not in js
         assert 'go-calendar' not in js
-        assert 'v=1.9' in html
-        assert 'queuewise-shell-v19' in c.get('/sw.js').text
+        assert 'v=1.10' in html
+        assert 'queuewise-shell-v110' in c.get('/sw.js').text
         # Both Student and Alumni use a single role-neutral calendar widget.
         assert 'dateNeededWidget()' in js
         assert "${alumni?`<label" not in js

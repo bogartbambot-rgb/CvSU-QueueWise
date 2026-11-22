@@ -8,9 +8,9 @@ def test_dashboard_cards_are_routed_and_pwa_cache_is_refreshed(tmp_path):
         html=client.get('/').text
         js=client.get('/static/js/app.js').text
         css=client.get('/static/css/styles.css').text
-        assert 'v=1.9' in html
-        assert 'v1.9' in html
-        assert 'queuewise-shell-v19' in client.get('/sw.js').text
+        assert 'v=1.10' in html
+        assert 'v1.10' in html
+        assert 'queuewise-shell-v110' in client.get('/sw.js').text
         for path in ('tracked','active','completed','portal'):
             assert path in js
         for heading in ('My Tracked Requests','Active Requests','Completed Requests','Online Portal'):
