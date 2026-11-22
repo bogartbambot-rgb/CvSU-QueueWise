@@ -1,6 +1,6 @@
 /* Only static files and a generic offline screen are cached. Never cache API/private data. */
-const CACHE = 'queuewise-shell-v3';
-const SHELL = ['/','/offline','/static/css/styles.css','/static/js/app.js','/static/icons/icon-192.png','/static/icons/icon-512.png'];
+const CACHE = 'queuewise-shell-v4';
+const SHELL = ['/','/offline','/static/css/styles.css','/static/css/auth.css','/static/js/app.js','/static/icons/icon-192.png','/static/icons/icon-512.png','/manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
@@ -16,6 +16,13 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (request.method === 'GET' && (url.pathname.startsWith('/static/') || url.pathname === '/manifest.webmanifest')) {
-    event.respondWith(caches.match(request).then(hit => hit || fetch(request)));
+    // Network-first avoids an old cached JavaScript/CSS file hiding a new UI update.
+    event.respondWith(fetch(request).then(response => {
+      if (response.ok && (url.pathname.startsWith('/static/') || url.pathname === '/manifest.webmanifest')) {
+        const copy = response.clone();
+        caches.open(CACHE).then(cache => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => caches.match(request)));
   }
 });

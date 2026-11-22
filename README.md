@@ -1,5 +1,10 @@
 # CvSU QueueWise — Python + SQLite Progressive Web App
 
+> **UPDATE v1.1 — NEW LOGIN / LOGOUT / PWA:** This version has a dedicated green two-column sign-in page, visible header/sidebar logout, and Install App controls. See [`UPGRADE_GUIDE.md`](UPGRADE_GUIDE.md) for exact Windows commands and steps to preserve your existing SQLite database.
+
+
+> **Deploying to GitHub + Railway with persistent SQLite?** Read [`RAILWAY_DEPLOY_GUIDE.md`](RAILWAY_DEPLOY_GUIDE.md). This version supports the `QUEUEWISE_DB_PATH` environment variable so the database can be stored on a Railway Volume.
+
 A complete, local, full-stack **academic prototype** for the project **“CvSU QueueWise: A Web-Based Document Request Processing System Using Priority Queue Algorithms”** (CPEN60, Group 1). Designed around the submitted proposal and updated for the requested interface.
 
 > **Scope disclaimer:** This is a simulated project, not the official Cavite State University registrar service. The priority weights/categories are **group-proposed examples**, not official university policies. No payments, real student records, or university system connection are included.
@@ -27,8 +32,8 @@ A complete, local, full-stack **academic prototype** for the project **“CvSU Q
 1. Extract the ZIP into your Downloads folder (do not run from inside the ZIP).
 2. Double-click **`start_windows.bat`**. The script creates `.venv`, installs dependencies, and starts the server.
 3. Open **http://127.0.0.1:8000** in your browser.
-4. Open **Profile → Registrar staff sign in** and use the demo account above.
-5. From **Document Request**, click **Load sample data** to populate 12 clearly labeled simulated records. This is optional; an empty database is normal initially.
+4. Choose **Sign in** at the top right or **Registrar sign in** in the sidebar. Alternatively, open `http://127.0.0.1:8000/#login` and use the demo account above.
+5. After signing in, go to **Document Request** and click **Load sample data** to populate 12 clearly labeled simulated records. This is optional; an empty database is normal initially.
 6. Press **Ctrl+C** in the terminal to stop the app.
 
 **Note:** If the `start_windows.bat` window closes immediately, launch it from Command Prompt to see error details. Do not run it from a compressed ZIP.
@@ -54,7 +59,7 @@ python -m pip install -r requirements.txt
 python run.py
 ```
 
-Open `http://127.0.0.1:8000`. To install as a PWA in supported Chrome/Edge versions, use the **Install** icon in the browser address bar after opening the app once. By default the server binds only to your own computer (127.0.0.1), not to a public network.
+Open `http://127.0.0.1:8000`. To install as a PWA in Chrome/Edge, use the new **Install app** button on the page. If no native prompt appears, follow the popup instructions or use the browser address-bar install icon / browser menu. See `UPGRADE_GUIDE.md`. By default the server binds only to your own computer (127.0.0.1), not to a public network.
 
 ## Using DB Browser for SQLite
 
@@ -81,12 +86,12 @@ CvSU_QueueWise_PWA/
 
 ## Navigation and roles
 
-The **left sidebar** includes only:
+The **left sidebar navigation** includes only:
 
 - **Dashboard:** student/alumni request tracker and recent IDs; signed-in registrar queue metrics and upcoming requests.
 - **Document Request:** submit a document request (guest); signed-in staff see requests, priority ranking, FIFO arrival history, status transitions, and optional sample data.
 - **Notifications:** in-app request events (for public users, visible for locally saved reference IDs); registrar receives new-request/status events. **No email, SMS, or push notifications**.
-- **Profile:** public guest information and registrar login; registrar password change and sign out.
+- **Profile:** public guest information, registrar access shortcut, and staff password change. **Sign in / Log out** are now visible in the header and the sidebar utility area, too.
 
 The **question-mark icon in the upper-right corner** opens a modal titled **“How the system works”** with separate **Student / Alumni** and **Registrar Staff** instructions. There is **no “How priority works” entry** in the sidebar.
 
@@ -150,7 +155,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-18 automated tests cover FIFO enqueue/dequeue, heap operations and stable ranking, separate-chaining hash lookup and resizing (200 records), exact priority-score examples from the proposal, time-based refresh, full-name validation, invalid deadlines, CSRF, staff-only endpoints, request submission/tracking, staff processing and status transitions, empty queues, PWA routes, notifications, password change, and **150 demo requests**.
+20 automated tests cover FIFO enqueue/dequeue, heap operations and stable ranking, separate-chaining hash lookup and resizing (200 records), exact priority-score examples from the proposal, time-based refresh, full-name validation, invalid deadlines, CSRF, staff-only endpoints, request submission/tracking, staff processing and status transitions, empty queues, PWA routes, notifications, password change, and **150 demo requests**.
 
 ## Folder structure
 
@@ -161,17 +166,19 @@ CvSU_QueueWise_PWA/
 │   ├── algorithms.py               # FIFO Queue, min-heap, hash table, scoring
 │   ├── storage.py                  # SQLite schema, persistence, passwords
 │   ├── templates/
-│   │   ├── index.html              # Main application shell
+│   │   ├── index.html              # Main app shell + PWA install guide
 │   │   └── offline.html            # Offline fallback
 │   └── static/
-│       ├── css/styles.css          # Responsive green UI + dark/light themes
+│       ├── css/styles.css          # Main responsive green UI + dark/light themes
+│       ├── css/auth.css            # Dedicated two-column login and PWA controls
 │       ├── js/app.js               # Page views, forms, session controls
 │       ├── js/sw.js                # Service worker (offline app shell)
 │       ├── icons/                  # 192px and 512px icons
 │       └── manifest.webmanifest    # PWA manifest
 ├── tests/
 │   ├── test_algorithms.py
-│   └── test_api.py
+│   ├── test_api.py
+│   └── test_login_and_pwa.py
 ├── instance/                      # Created on first run; not in ZIP
 ├── start_windows.bat              # One-click Windows launcher
 ├── run.py                         # Local server

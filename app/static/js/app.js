@@ -10,7 +10,7 @@ const state = {
   csrf: '', user: null, today: '', documents: [], categories: [],
   view: 'dashboard', adminData: null, notifications: [], publicTracked: [],
   staffTab: 'all', search: '', filter: 'All', lastSuccessId: null, trackedResult: null,
-  helpTab: 'student', installPrompt: null, busy: false, renderToken: 0
+  helpTab: 'student', installPrompt: null, isInstalled: false, busy: false, renderToken: 0
 };
 const todayLabel = () => new Intl.DateTimeFormat('en-PH',{month:'long',day:'numeric',year:'numeric'}).format(new Date(`${state.today || new Date().toISOString().slice(0,10)}T00:00:00`));
 const datetime = text => { try { return new Intl.DateTimeFormat('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZone:'Asia/Manila'}).format(new Date(text)); } catch { return '—'; } };
@@ -49,6 +49,28 @@ function setTheme(theme) {
   $('#themeButton').title = `Switch to ${actual==='dark'?'light':'dark'} mode`;
   document.querySelector('meta[name="theme-color"]').content = actual === 'dark' ? '#101c16' : '#155c38';
 }
+function updateInstallUI() {
+  const installed = state.isInstalled || window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  for (const id of ['installButton', 'sidebarInstallButton']) {
+    const item = document.getElementById(id);
+    if (item) item.classList.toggle('hidden', !!installed);
+  }
+}
+async function installApp() {
+  if (state.isInstalled || window.matchMedia?.('(display-mode: standalone)').matches) {
+    toast('QueueWise is already running as an installed app.');
+    return;
+  }
+  if (!state.installPrompt) { openModal('installModal'); return; }
+  const prompt = state.installPrompt;
+  state.installPrompt = null;
+  try {
+    await prompt.prompt();
+    const result = await prompt.userChoice;
+    if (result.outcome === 'accepted') toast('Installation accepted. Follow your browser to finish setup.');
+    else toast('You can install QueueWise later from the browser menu.');
+  } catch { openModal('installModal'); }
+}
 function pageHeading(title, subtitle, actions = '') { return `<div class="page-heading"><div><h1>${title}</h1><p>${subtitle}</p></div>${actions?`<div class="heading-actions">${actions}</div>`:''}</div>`; }
 function button(label, action, kind='primary', extra='') { return `<button type="button" class="button ${kind}" data-action="${action}" ${extra}>${label}</button>`; }
 const isStaff = () => !!state.user;
@@ -71,20 +93,29 @@ function updateChrome() {
   $('#topName').textContent = state.user?.display_name || 'Guest portal';
   $('#topRole').textContent = state.user?'Registrar Administrator':'Student / Alumni';
   $('#topAvatar').textContent = state.user?.display_name?.[0] || 'G';
+  const authAction = state.user ? 'logout' : 'login';
+  $('#sidebarAuthButton').dataset.action = authAction;
+  $('#sidebarAuthText').textContent = state.user ? 'Log out' : 'Registrar sign in';
+  $('#headerAuthButton').dataset.action = authAction;
+  $('#headerAuthText').textContent = state.user ? 'Log out' : 'Sign in';
+  $('#headerAuthButton').classList.toggle('signed-in',!!state.user);
+  $('#appShell').classList.toggle('auth-screen', state.view === 'login');
+  updateInstallUI();
   const count = state.user ? (state.unread || 0) : 0;
   $('#navBadge').textContent = String(count>99?'99+':count);
   $('#navBadge').classList.toggle('hidden',count===0);
   $('#appShell').classList.remove('menu-open');
 }
 function navigate(view) {
-  const accepted = ['dashboard','requests','notifications','profile'];
+  const accepted = ['dashboard','requests','notifications','profile','login'];
   const v = accepted.includes(view)?view:'dashboard';
   if (location.hash !== `#${v}`) location.hash=v;
   else render();
 }
 async function render() {
   const requested = location.hash.replace(/^#/,'');
-  const view = ['dashboard','requests','notifications','profile'].includes(requested)?requested:'dashboard';
+  const view = ['dashboard','requests','notifications','profile','login'].includes(requested)?requested:'dashboard';
+  if (view === 'login' && isStaff()) {navigate('dashboard'); return;}
   state.view = view;
   const ticket = ++state.renderToken;
   updateChrome();
@@ -98,7 +129,7 @@ async function render() {
       state.notifications = feed.notifications; state.unread = feed.unread;
     }
     if (ticket!==state.renderToken) return;
-    const html = view==='dashboard' ? (isStaff()?adminDashboard():publicDashboard())
+    const html = view==='login' ? loginPage() : view==='dashboard' ? (isStaff()?adminDashboard():publicDashboard())
       : view==='requests' ? (isStaff()?adminRequests():publicRequests())
       : view==='notifications' ? notificationsPage() : profilePage();
     target.innerHTML = html;
@@ -110,6 +141,50 @@ async function render() {
     target.innerHTML = empty('Unable to load this page',escapeHtml(error.message),button('Try again','refresh','primary'));
     toast(error.message,true);
   }
+}
+function loginPage() {
+  return `<div class="auth-landing">
+    <div class="auth-frame">
+      <header class="auth-header">
+        <div class="auth-brand"><span class="auth-brand-icon">Q<span class="auth-brand-spark">✦</span></span><span><strong>QueueWise<span class="brand-dot">.</span></strong><small>CAVITE STATE UNIVERSITY · REGISTRAR PORTAL</small></span></div>
+        <div class="auth-header-actions"><button class="auth-header-link" data-action="help">${icon('help')}<span>How it works</span></button><button class="auth-header-link" data-action="theme" title="Toggle light/dark mode">${icon('moon')}<span>Appearance</span></button><button class="auth-header-link auth-home-link" data-action="go-dashboard">${icon('home')}<span>Public portal</span></button></div>
+      </header>
+      <div class="auth-columns">
+        <section class="auth-story" aria-label="QueueWise introduction">
+          <p class="auth-kicker"><span></span> A SMARTER WAY TO MANAGE DOCUMENTS</p>
+          <h1>One place for every <span>document request.</span></h1>
+          <p class="auth-description">Welcome to CvSU QueueWise. Submit academic document requests, track their progress, and help the registrar process requests in a clearer, more organized way.</p>
+          <div class="auth-feature-grid">
+            <div class="auth-feature"><span>${icon('document')}</span><div><strong>Simple submissions</strong><p>Request TOR, grades, or certifications using an easy-to-follow form.</p></div></div>
+            <div class="auth-feature"><span>${icon('clock')}</span><div><strong>Live request tracking</strong><p>Save your auto-generated reference ID to follow the latest status.</p></div></div>
+            <div class="auth-feature"><span>${icon('layers')}</span><div><strong>Organized processing</strong><p>Registrar staff manage incoming requests with a transparent priority queue.</p></div></div>
+          </div>
+          <div class="auth-story-actions"><button class="button primary" data-action="go-requests">${icon('plus')} Request a document</button><button class="button outline" data-action="go-dashboard">Explore the portal ${icon('arrow')}</button></div>
+          <div class="auth-trust">${icon('shield')} Academic prototype · Simulated records · Not an official CvSU service</div>
+        </section>
+        <section class="auth-signin" aria-label="Registrar staff login">
+          <div class="auth-signin-card">
+            <div class="auth-signin-icon">${icon('shield')}</div>
+            <p class="eyebrow">REGISTRAR STAFF ACCESS</p>
+            <h2>Welcome back.</h2>
+            <p class="auth-card-intro">Sign in to view the admin dashboard, review requests, and process the priority queue.</p>
+            <form id="loginForm" class="form-stack">
+              <label class="form-label" for="username">Username<input id="username" name="username" autocomplete="username" required maxlength="100" placeholder="Enter your username" value="admin"></label>
+              <label class="form-label" for="password">Password
+                <span class="auth-password-wrap"><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256" placeholder="Enter your password"><button type="button" class="auth-password-toggle" data-action="toggle-password" aria-controls="password" aria-label="Show password">${icon('eye')}</button></span>
+              </label>
+              <p id="authError" class="auth-error hidden" role="alert" aria-live="polite"></p>
+              <button class="button primary full auth-submit" type="submit" id="loginSubmit">Sign in to dashboard ${icon('arrow')}</button>
+            </form>
+            <div class="auth-private-note">${icon('shield')} Your session is protected. Staff permissions are verified by the server.</div>
+            <div class="auth-form-bottom"><span>Not registrar staff?</span><button class="inline-link" data-action="go-requests">Continue as student / alumni ${icon('arrow')}</button></div>
+          </div>
+          <div class="auth-install"><span>${icon('download')}</span><div><strong>Install as a Progressive Web App</strong><p>Get the desktop-style QueueWise experience.</p></div><button class="button outline sm" data-action="install">Install app</button></div>
+        </section>
+      </div>
+      <footer class="auth-footer"><span>© ${new Date().getFullYear()} CvSU QueueWise · Academic demonstration only</span><span>Built with Python + SQLite · PWA ready</span></footer>
+    </div>
+  </div>`;
 }
 function hero({staff=false}={}) {
   const label = staff?'REGISTRAR CONTROL CENTER':'DOCUMENT REQUEST PORTAL';
@@ -180,7 +255,7 @@ function profilePage() {
 }
 const helpGuides={
   student:[['Open Document Request','Choose “Document Request” from the left sidebar.'],['Complete the form','Enter your first and last name, document type, requester category, and required-by date.'],['Submit and save your ID','The system validates your information and generates a reference such as REQ-0001 automatically.'],['Track your status','Open Dashboard or Document Request and enter the reference ID to see the latest status and timeline.']],
-  staff:[['Sign in as registrar staff','Go to Profile and choose “Registrar staff sign in” using a demonstration account.'],['Open the queue dashboard','Review live counts, highest-priority pending requests, and registrar activity.'],['Manage document requests','Switch among All requests, Priority ranking, and FIFO arrivals. Update an eligible status or choose Process next.'],['Understand priority selection','The demonstration score is PS = 0.50U + 0.30W + 0.20C. U is deadline urgency, W waiting time, and C requester category (each 0–100). Scores are recalculated before ranking or processing.'],['Review updates','Use Notifications for in-app activity. Profile includes change password and sign out.']]
+  staff:[['Sign in as registrar staff','Click Sign in in the top-right corner or the registrar login shortcut in the sidebar.'],['Open the queue dashboard','Review live counts, highest-priority pending requests, and registrar activity.'],['Manage document requests','Switch among All requests, Priority ranking, and FIFO arrivals. Update an eligible status or choose Process next.'],['Understand priority selection','The demonstration score is PS = 0.50U + 0.30W + 0.20C. U is deadline urgency, W waiting time, and C requester category (each 0–100). Scores are recalculated before ranking or processing.'],['Review updates','Use Notifications for in-app activity. Profile includes change password and sign out.']]
 };
 function renderHelp() {
   $$('#helpModal [data-help-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.helpTab===state.helpTab));
@@ -221,14 +296,17 @@ async function executeAction(action, element) {
   if (action==='go-requests') return navigate('requests');
   if (action==='go-dashboard') return navigate('dashboard');
   if (action==='profile') return navigate('profile');
-  if (action==='login') return openModal('loginModal');
+  if (action==='login') return navigate('login');
+  if (action==='theme') return setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+  if (action==='install') return installApp();
+  if (action==='toggle-password') {const field=$('#password');if(field){field.type=field.type==='password'?'text':'password';element.setAttribute('aria-label',field.type==='password'?'Show password':'Hide password');}return;}
   if (action==='help') {state.helpTab='student';renderHelp();return openModal('helpModal');}
   if (action==='refresh') return refreshCurrent();
   if (action==='focus-track') { navigate('dashboard'); setTimeout(()=>$('#homeTrackInput')?.focus(),150);return; }
   if (action==='quick-track') { const id=element.dataset.id;await track(id);navigate('requests');return; }
   if (action==='copy-success') { try { await navigator.clipboard.writeText(state.lastSuccessId||'');toast('Reference ID copied.'); } catch {toast('Please copy the reference ID manually.',true);} return; }
   if (action==='track-success') {closeModal('successModal');navigate('dashboard');setTimeout(()=>{const field=$('#homeTrackInput');if(field){field.value=state.lastSuccessId;field.closest('form').requestSubmit();}},200);return;}
-  if (action==='logout') {await api('/api/auth/logout',{method:'POST'});state.user=null;state.adminData=null;state.notifications=[];state.unread=0;toast('You have signed out.');return navigate('dashboard');}
+  if (action==='logout') {await api('/api/auth/logout',{method:'POST'});state.user=null;state.adminData=null;state.notifications=[];state.unread=0;toast('You have signed out safely.');return navigate('login');}
   if (action==='process-next') {
     if(!confirm('Process the highest-priority pending request now? This marks it Processed.'))return;
     const response=await api('/api/admin/process-next',{method:'POST'});
@@ -269,14 +347,14 @@ document.addEventListener('submit',async event=>{
     event.preventDefault();const button=$('#loginSubmit');button.disabled=true;
     try{
       const response=await api('/api/auth/login',{method:'POST',body:Object.fromEntries(new FormData(form))});
-      state.user=response.user;state.adminData=null;closeModal('loginModal');form.reset();toast('Welcome to the registrar workspace.');navigate('dashboard');
-    }catch(error){toast(error.message,true);}finally{button.disabled=false;}return;
+      state.user=response.user;state.adminData=null;form.reset();toast('Welcome to the registrar workspace.');navigate('dashboard');
+    }catch(error){const notice=$('#authError');if(notice){notice.textContent=error.message;notice.classList.remove('hidden');}toast(error.message,true);}finally{button.disabled=false;}return;
   }
   if(form.id==='passwordForm'){
     event.preventDefault();const button=$('button[type="submit"]',form);button.disabled=true;
     try{
       const response=await api('/api/admin/change-password',{method:'POST',body:Object.fromEntries(new FormData(form))});
-      state.user=null;state.adminData=null;toast(response.message);navigate('profile');openModal('loginModal');
+      state.user=null;state.adminData=null;toast(response.message);navigate('login');
     }catch(error){toast(error.message,true);}finally{button.disabled=false;}
   }
 });
@@ -291,18 +369,20 @@ $('#themeButton').addEventListener('click',()=>setTheme(document.documentElement
 $('#menuToggle').addEventListener('click',()=>$('#appShell').classList.toggle('menu-open'));
 $('#mobileOverlay').addEventListener('click',()=>$('#appShell').classList.remove('menu-open'));
 window.addEventListener('hashchange',render);
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();state.installPrompt=event;});
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();state.installPrompt=event;updateInstallUI();});
+window.addEventListener('appinstalled',()=>{state.isInstalled=true;state.installPrompt=null;updateInstallUI();toast('QueueWise installed successfully.');});
 async function start() {
   let storedTheme='light'; try { storedTheme=localStorage.getItem('queuewise_theme')||'light'; } catch {}
   setTheme(storedTheme);
   $('#year').textContent=new Date().getFullYear();
   renderHelp();
+  updateInstallUI();
   try{
     const boot=await api('/api/bootstrap');
     state.user=boot.user;state.csrf=boot.csrf_token;state.today=boot.today;
     state.documents=boot.documents;state.categories=boot.categories;
     await render();
   }catch(error){$('#page').innerHTML=empty('Unable to connect',escapeHtml(error.message),button('Retry','refresh','primary'));toast(error.message,true);}
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(reg=>reg.update()).catch(()=>{toast('Offline PWA support is unavailable in this browser.',true);});}
 }
 start();

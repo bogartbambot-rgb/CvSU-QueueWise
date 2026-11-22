@@ -16,7 +16,7 @@ Run locally via `python run.py` and visit **http://127.0.0.1:8000**. The steps b
 | 10 | Unknown ID | Track `REQ-9999` (when not in DB) | “No request was found” error; no crash |
 | 11 | Admin restrictions | As Guest try `/api/admin/requests` | HTTP 401; no priority list or private names disclosed |
 | 12 | Bad credentials | Sign in with incorrect admin password | Clear incorrect-login error; no admin access |
-| 13 | Staff login | Profile → Registrar staff sign in | Staff dashboard, private request table, processing tools become available |
+| 13 | Staff login | Top-right **Sign in** / sidebar **Registrar sign in** → dedicated login page | Staff dashboard, private request table, processing tools become available |
 | 14 | Priority ranking | Load sample data → Document Request → Priority ranking | Higher scores first; ties broken by deadline, arrival, ID |
 | 15 | FIFO history | Go to FIFO arrivals | Request IDs stay in chronological order even after processing |
 | 16 | Process highest priority | As staff click **Process next** | Highest Pending request becomes Processed; record stays searchable |
@@ -33,6 +33,12 @@ Run locally via `python run.py` and visit **http://127.0.0.1:8000**. The steps b
 | 27 | CSRF | Call POST API without `X-CSRF-Token` | HTTP 403; mutation does not happen |
 | 28 | Offline support | Visit once online; then disconnect and reload | Offline explanation page appears; live submission/tracking needs a server connection |
 
+| 29 | Visible logout | Sign in → click **Log out** in the top-right or sidebar | Session ends, returns to login screen, private API access is blocked |
+| 30 | Dedicated login page | Click Sign in or visit `/#login` | Two-column green login page; name and password fields, public portal buttons |
+| 31 | Install PWA button | Click **Install app** | Native install prompt when supported, otherwise clear manual Chrome/Edge instructions |
+| 32 | New PWA files | Open `/manifest.webmanifest`, `/sw.js`, and `/static/css/auth.css` | Valid manifest, updated service-worker cache version, CSS available |
+| 33 | Existing PWA upgrade | Upgrade app files; close installed window; browser hard-refresh | New interface loads rather than old cached app JS or CSS |
+
 ## Recommended automated tests
 
 ```bash
@@ -40,7 +46,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-There are **18 passing tests** as of packaging. The tests create temporary SQLite databases; they do not modify your working `instance/queuewise.db`.
+There are **20 passing tests** as of packaging. The tests create temporary SQLite databases; they do not modify your working `instance/queuewise.db`.
 
 ## Data-structure versus full HTTP cost
 

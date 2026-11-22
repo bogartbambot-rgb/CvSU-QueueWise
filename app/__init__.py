@@ -148,7 +148,7 @@ def read_staff_snapshot(db) -> dict:
 
 
 def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
-    database = str(Path(db_path) if db_path else ROOT.parent / 'instance' / 'queuewise.db')
+    database = str(Path(db_path) if db_path else Path(os.environ.get('QUEUEWISE_DB_PATH') or (ROOT.parent / 'instance' / 'queuewise.db')))
     secret = get_secret(database)
     demo_password = os.environ.get('QUEUEWISE_ADMIN_PASSWORD', 'CvSU@2026Demo!')
     init_database(database, demo_password)

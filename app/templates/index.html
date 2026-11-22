@@ -7,9 +7,10 @@
   <meta name="description" content="CvSU QueueWise — a simulated registrar document request portal.">
   <link rel="icon" href="/static/icons/icon-192.png" type="image/png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.1">
+  <link rel="stylesheet" href="/static/css/auth.css?v=1.1">
   <title>CvSU QueueWise | Registrar Request Portal</title>
-  <script src="/static/js/app.js" defer></script>
+  <script src="/static/js/app.js?v=1.1" defer></script>
 </head>
 <body>
   <svg class="icon-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -35,6 +36,7 @@
     <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18"/></symbol>
     <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.7"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
   </svg>
   <div class="app-shell" id="appShell">
@@ -53,21 +55,34 @@
         <button class="nav-item" data-nav="profile"><svg><use href="#i-user"/></svg><span>Profile</span></button>
       </nav>
       <div class="sidebar-footer">
+        <div class="side-utility" aria-label="Account and application actions">
+          <button class="side-action side-auth" data-action="login" id="sidebarAuthButton"><svg><use href="#i-log"/></svg><span id="sidebarAuthText">Registrar sign in</span></button>
+          <button class="side-action" data-action="install" id="sidebarInstallButton"><svg><use href="#i-download"/></svg><span>Install QueueWise PWA</span></button>
+        </div>
         <div class="sidebar-help"><span class="help-spark">✦</span><strong>Need a little guidance?</strong><p>Learn how to submit and track your requests in seconds.</p><button class="inline-link" data-action="help">Explore the guide <span>↗</span></button></div>
-        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.0</span></div>
+        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.1</span></div>
       </div>
     </aside>
     <div class="main-area">
       <header class="topbar">
         <div class="topbar-left"><button class="icon-button menu-toggle" id="menuToggle" aria-label="Open sidebar"><svg><use href="#i-menu"/></svg></button><div class="location-label"><span class="crumb-overline">YOUR WORKSPACE</span><strong id="currentSection">Dashboard</strong></div></div>
-        <div class="topbar-actions"><div class="live-indicator"><span class="online-pip"></span><span>System online</span></div><button class="icon-button" id="helpButton" aria-label="How the system works" title="How the system works"><svg><use href="#i-help"/></svg></button><button class="icon-button" id="themeButton" aria-label="Switch theme" title="Switch light/dark mode"><svg id="themeIcon"><use href="#i-moon"/></svg></button><span class="topbar-divider"></span><button class="account-chip" data-action="profile"><span class="avatar" id="topAvatar">G</span><span class="account-label"><strong id="topName">Guest portal</strong><small id="topRole">Student / Alumni</small></span><span class="account-chevron">⌄</span></button></div>
+        <div class="topbar-actions"><div class="live-indicator"><span class="online-pip"></span><span>System online</span></div><button class="top-install-button" id="installButton" data-action="install" title="Install QueueWise as an app"><svg><use href="#i-download"/></svg><span>Install app</span></button><button class="icon-button" id="helpButton" aria-label="How the system works" title="How the system works"><svg><use href="#i-help"/></svg></button><button class="icon-button" id="themeButton" aria-label="Switch theme" title="Switch light/dark mode"><svg id="themeIcon"><use href="#i-moon"/></svg></button><span class="topbar-divider"></span><button class="top-auth-button" id="headerAuthButton" data-action="login"><svg><use href="#i-log"/></svg><span id="headerAuthText">Sign in</span></button><button class="account-chip" data-action="profile"><span class="avatar" id="topAvatar">G</span><span class="account-label"><strong id="topName">Guest portal</strong><small id="topRole">Student / Alumni</small></span><span class="account-chevron">⌄</span></button></div>
       </header>
       <main class="page" id="page" tabindex="-1"><div class="initial-loader"><span class="spinner"></span><p>Preparing your workspace…</p></div></main>
       <footer class="main-footer"><span>© <span id="year"></span> CvSU QueueWise · CPEN60 Academic Prototype</span><span>Built for clearer document request tracking.</span></footer>
     </div>
   </div>
   <dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-help"/></svg></span><button class="icon-button" data-close="helpModal" aria-label="Close dialog"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><p class="eyebrow">YOUR QUICK START GUIDE</p><h2 id="helpTitle">How the system works</h2><p class="modal-subtitle">A simple walkthrough of QueueWise for students, alumni, and registrar staff.</p><div class="segmented help-tabs"><button class="selected" data-help-tab="student">Student / Alumni</button><button data-help-tab="staff">Registrar Staff</button></div><div id="helpContent"></div><div class="help-note"><svg><use href="#i-info"/></svg><p>This is a school project using simulated records. Request priorities are demonstration rules, not official CvSU policy.</p></div></div></dialog>
-  <dialog class="modal login-modal" id="loginModal" aria-labelledby="loginTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-shield"/></svg></span><button class="icon-button" data-close="loginModal" aria-label="Close login dialog"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><p class="eyebrow">AUTHORIZED ACCESS ONLY</p><h2 id="loginTitle">Registrar staff sign in</h2><p class="modal-subtitle">Secure access to request processing and the priority dashboard.</p><form id="loginForm" class="form-stack"><label class="form-label" for="username">Username<input id="username" name="username" autocomplete="username" required placeholder="Enter your username" value="admin"></label><label class="form-label" for="password">Password<input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password"></label><button class="button primary full" type="submit" id="loginSubmit">Sign in to registrar workspace <svg><use href="#i-arrow"/></svg></button><p class="form-hint">Demo login credentials are included in the README file. Change them before sharing your server.</p></form></div></dialog>
+  <dialog class="modal install-modal" id="installModal" aria-labelledby="installTitle">
+    <div class="modal-heading"><span class="modal-icon"><svg><use href="#i-download"/></svg></span><button class="icon-button" data-close="installModal" aria-label="Close install instructions"><svg><use href="#i-close"/></svg></button></div>
+    <div class="modal-body"><p class="eyebrow">PROGRESSIVE WEB APP</p><h2 id="installTitle">Install QueueWise</h2><p class="modal-subtitle">Use QueueWise in its own app window with an icon on your desktop or home screen.</p>
+      <div class="help-step"><span class="help-step-number">01</span><div><strong>Open in Chrome or Microsoft Edge</strong><p>Use <b>http://127.0.0.1:8000</b> on the computer running the Python server. Localhost is treated as a secure origin for PWA installation.</p></div></div>
+      <div class="help-step"><span class="help-step-number">02</span><div><strong>Choose Install</strong><p>If an automatic installation prompt is unavailable, use the browser's address-bar install icon, or open its menu and select <b>Install QueueWise</b> / <b>Apps → Install this site as an app</b> when offered.</p></div></div>
+      <div class="help-step"><span class="help-step-number">03</span><div><strong>Run as a standalone app</strong><p>The PWA supports a standalone window and an offline information screen. Submitting and tracking requests still requires the Python server to be running.</p></div></div>
+      <div class="help-note"><svg><use href="#i-info"/></svg><p>Some browsers will not offer installation if the app is already installed or the browser does not support install prompts. PWA does not mean all backend features work offline.</p></div>
+      <button class="button primary full" style="margin-top:20px" data-close="installModal">Got it</button>
+    </div>
+  </dialog>
   <dialog class="modal success-modal" id="successModal" aria-labelledby="successTitle"><div class="modal-body success-body"><span class="success-check"><svg><use href="#i-check"/></svg></span><h2 id="successTitle">Request submitted!</h2><p>Your document request has been added to the queue. Save this reference number to check your request's status.</p><div class="success-id"><small>YOUR REFERENCE NUMBER</small><strong id="successId">REQ-0000</strong><button class="icon-button" data-action="copy-success" aria-label="Copy request ID" title="Copy request ID"><svg><use href="#i-document"/></svg></button></div><div class="success-actions"><button class="button primary" data-action="track-success">Track this request <svg><use href="#i-arrow"/></svg></button><button class="button light" data-close="successModal">Close</button></div></div></dialog>
   <div id="toastArea" aria-live="polite" aria-atomic="false"></div>
 </body>
