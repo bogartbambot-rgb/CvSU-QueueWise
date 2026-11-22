@@ -202,7 +202,7 @@ function marketingBrand(extraClass='') {
 function marketingHeader(active='home') {
   return `<header class="qw-marketing-header">${marketingBrand('qw-marketing-brand')}
     <nav class="qw-marketing-nav" aria-label="Public navigation"><button type="button" class="${active==='home'?'current':''}" data-action="go-dashboard">Home</button><button type="button" data-action="focus-features">Features</button></nav>
-    <div class="qw-marketing-tools"><button type="button" class="qw-mini-button qw-install" data-action="install">${icon('download')}<span>Install app</span></button><button type="button" class="qw-round-button" data-action="help" aria-label="How the system works">${icon('help')}</button><button type="button" class="qw-mini-button" data-action="theme" aria-label="Toggle light or dark mode">${icon('moon')}<span>Theme</span></button><button type="button" class="qw-mini-button qw-top-signin" data-action="login">Sign in</button></div>
+    <div class="qw-marketing-tools"><button type="button" class="qw-mini-button qw-install" data-action="install" aria-label="Install QueueWise app" title="Install QueueWise">${icon('download')}<span>Install app</span></button><button type="button" class="qw-round-button" data-action="help" aria-label="How the system works">${icon('help')}</button><button type="button" class="qw-mini-button" data-action="theme" aria-label="Toggle light or dark mode">${icon('moon')}<span>Theme</span></button><button type="button" class="qw-mini-button qw-top-signin" data-action="login">Sign in</button></div>
   </header>`;
 }
 function marketingLandingPage() {
@@ -217,6 +217,7 @@ function marketingLandingPage() {
      <h1 id="qwHeroTitle">Request documents.<br>Follow every step.<br><em>Stay informed.</em></h1>
      <p>One convenient space for students and alumni to submit academic document requests, review approvals, and view pickup schedules.</p>
      <div class="qw-hero-buttons"><button type="button" class="qw-cta" data-action="login">Sign in ${icon('arrow')}</button><button type="button" class="qw-cta qw-cta-outline" data-action="register">Create an account ${icon('arrow')}</button></div>
+     <button type="button" class="qw-mobile-install" data-action="install">${icon('download')} Install QueueWise App</button>
      <div class="qw-social-proof"><span class="qw-proof-icon">${icon('shield')}</span><span>Secure account access and email verification<br><small>School prototype · Not an official registrar service</small></span></div>
    </section>
    <section class="qw-feature-panel" id="qwFeatures" aria-labelledby="qwFeaturesTitle"><div class="qw-feature-heading"><div><span class="qw-kicker">BUILT AROUND YOUR REQUESTS</span><h2 id="qwFeaturesTitle">Everything in one place.</h2><p>A simpler way to organize your documents.</p></div><span class="qw-feature-symbol">${icon('document')}</span></div>
@@ -355,7 +356,11 @@ function pickerMonthMarkup() {
   const start = new Date(first);
   start.setDate(first.getDate() - ((first.getDay()+6)%7));
   const limit = dateKey(new Date(parseCalendarDate(today).getFullYear()+3,parseCalendarDate(today).getMonth(),parseCalendarDate(today).getDate()));
-  const cells=Array.from({length:42},(_,i)=>{
+  // Render only the week rows needed by this month (4, 5 or 6), not six blank rows every time.
+  const monthOffset = (first.getDay()+6)%7;
+  const daysInMonth = new Date(focus.getFullYear(), focus.getMonth()+1, 0).getDate();
+  const calendarCellCount = Math.ceil((monthOffset+daysInMonth)/7)*7;
+  const cells=Array.from({length:calendarCellCount},(_,i)=>{
     const date=new Date(start);date.setDate(start.getDate()+i);
     const key=dateKey(date), disabled=key<today||key>limit;
     const outside=date.getMonth()!==focus.getMonth();

@@ -206,3 +206,45 @@
 .needed-calendar-footer strong{font-size:16px;color:var(--text)}
 .needed-calendar-footer small{font-size:10px;color:var(--text-soft);line-height:1.5}
 @media(max-width:700px){.needed-date-box{flex-wrap:wrap;gap:10px}.needed-date-copy{flex:1 1 calc(100% - 75px)}.needed-date-box .button{flex:1 1 100%}.needed-calendar{padding:15px 12px}.needed-calendar-head h3{font-size:20px}.needed-day{min-height:34px;border-radius:8px}.needed-day-grid{gap:2px}.needed-calendar-footer .button{width:100%}}
+
+
+/* v1.12.2 — Compact Date Needed picker shared by Student and Alumni.
+   Keep the picker inside New Document Request, never as an Academic Calendar page. */
+.needed-calendar{
+  box-sizing:border-box;
+  width:min(100%, 430px);
+  max-width:430px;
+  padding:15px 16px;
+  border-radius:14px;
+  box-shadow:0 9px 24px #0d482312;
+}
+.needed-calendar-head{gap:8px;margin-bottom:8px}
+.needed-calendar-head .eyebrow{font-size:8px;margin-bottom:3px}
+.needed-calendar-head h3{font-size:17px;letter-spacing:-.35px}
+.needed-calendar-controls{gap:4px}
+.needed-calendar-controls button{height:36px;min-width:36px;padding:0 8px;font-size:17px;border-radius:8px}
+.needed-calendar-controls .needed-calendar-today{font-size:10px;min-width:46px}
+.needed-weekdays,.needed-day-grid{gap:3px}
+.needed-weekdays{margin-bottom:5px;padding-bottom:3px}
+.needed-weekdays span{font-size:10px;padding:3px 0}
+.needed-day{box-sizing:border-box;aspect-ratio:auto;width:100%;height:40px;min-height:40px;border-radius:8px;font-size:12px}
+.needed-day:focus-visible,.needed-calendar-controls button:focus-visible{outline:2px solid var(--green-mid);outline-offset:2px}
+.needed-calendar-footer{gap:9px;margin-top:9px;padding-top:11px}
+.needed-calendar-footer>div{gap:2px;min-width:0}
+.needed-calendar-footer strong{font-size:13px}
+.needed-calendar-footer small{font-size:9px}
+.needed-calendar-footer .button{min-height:40px;padding:9px 12px;white-space:nowrap}
+@media(max-width:700px){
+  .needed-calendar{width:100%;max-width:430px;padding:12px 10px}
+  .needed-calendar-head h3{font-size:16px}
+  .needed-day{height:40px;min-height:40px;border-radius:7px}
+  .needed-day-grid{gap:2px}
+  .needed-calendar-footer .button{width:auto;max-width:100%}
+}
+@media(max-width:360px){
+  .needed-calendar{padding:10px 7px}
+  .needed-calendar-head{align-items:flex-start}
+  .needed-calendar-controls button{height:34px;min-width:34px}
+  .needed-day{height:38px;min-height:38px;font-size:11px}
+  .needed-calendar-footer .button{width:100%}
+}

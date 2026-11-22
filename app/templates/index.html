@@ -4,14 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#155c38">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="QueueWise">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
   <meta name="description" content="QueueWise — an academic document request and release portal.">
   <link rel="icon" href="/static/icons/icon-192.png" type="image/png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.12">
-  <link rel="stylesheet" href="/static/css/auth.css?v=1.12">
-  <link rel="stylesheet" href="/static/css/marketing.css?v=1.12">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.12.2">
+  <link rel="stylesheet" href="/static/css/auth.css?v=1.12.2">
+  <link rel="stylesheet" href="/static/css/marketing.css?v=1.12.2">
   <title>QueueWise | Document Request Portal</title>
-  <script src="/static/js/app.js?v=1.12" defer></script>
+  <script src="/static/js/app.js?v=1.12.2" defer></script>
 </head>
 <body>
   <svg class="icon-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -62,7 +66,7 @@
           <button class="side-action" data-action="install" id="sidebarInstallButton"><svg><use href="#i-download"/></svg><span>Install QueueWise PWA</span></button>
         </div>
         <div class="sidebar-help"><span class="help-spark">✦</span><strong>Need a little guidance?</strong><p>Learn how to submit and track your requests in seconds.</p><button class="inline-link" data-action="help">Explore the guide <span>↗</span></button></div>
-        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.12</span></div>
+        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.12.2</span></div>
       </div>
     </aside>
     <div class="main-area">
@@ -80,10 +84,10 @@
   <dialog class="modal install-modal" id="installModal" aria-labelledby="installTitle">
     <div class="modal-heading"><span class="modal-icon"><svg><use href="#i-download"/></svg></span><button class="icon-button" data-close="installModal" aria-label="Close install instructions"><svg><use href="#i-close"/></svg></button></div>
     <div class="modal-body"><p class="eyebrow">PROGRESSIVE WEB APP</p><h2 id="installTitle">Install QueueWise</h2><p class="modal-subtitle">Use QueueWise in its own app window with an icon on your desktop or home screen.</p>
-      <div class="help-step"><span class="help-step-number">01</span><div><strong>Open in Chrome or Microsoft Edge</strong><p>Use <b>http://127.0.0.1:8000</b> on the computer running the Python server. Localhost is treated as a secure origin for PWA installation.</p></div></div>
-      <div class="help-step"><span class="help-step-number">02</span><div><strong>Choose Install</strong><p>If an automatic installation prompt is unavailable, use the browser's address-bar install icon, or open its menu and select <b>Install QueueWise</b> / <b>Apps → Install this site as an app</b> when offered.</p></div></div>
-      <div class="help-step"><span class="help-step-number">03</span><div><strong>Run as a standalone app</strong><p>The PWA supports a standalone window and an offline information screen. Submitting and tracking requests still requires the Python server to be running.</p></div></div>
-      <div class="help-note"><svg><use href="#i-info"/></svg><p>Some browsers will not offer installation if the app is already installed or the browser does not support install prompts. PWA does not mean all backend features work offline.</p></div>
+      <div class="help-step"><span class="help-step-number">01</span><div><strong>Android — Chrome</strong><p>Open the QueueWise HTTPS website directly in Chrome. Tap the browser's <b>⋮ menu → Install app</b>, or <b>Add to Home screen</b> when available. Confirm the installation.</p></div></div>
+      <div class="help-step"><span class="help-step-number">02</span><div><strong>iPhone — Safari</strong><p>Open QueueWise in Safari, tap <b>Share → Add to Home Screen → Add</b>. If offered, enable <b>Open as Web App</b>. iOS does not show the same automatic install popup as Android.</p></div></div>
+      <div class="help-step"><span class="help-step-number">03</span><div><strong>If you cannot find Install</strong><p>Open the link in your regular browser rather than inside Facebook, Messenger, or an in-app browser. On desktop Chrome/Edge, use the address-bar install icon or browser menu. After installing, launch QueueWise from the home screen.</p></div></div>
+      <div class="help-note"><svg><use href="#i-info"/></svg><p>If QueueWise is already installed, you might not see Install again. Installation availability depends on your device and browser; live requests still require an internet connection and a running server.</p></div>
       <button class="button primary full" style="margin-top:20px" data-close="installModal">Got it</button>
     </div>
   </dialog>
