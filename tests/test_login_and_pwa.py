@@ -12,7 +12,7 @@ def test_ui_delivers_login_logout_and_pwa_controls(tmp_path):
                      'id="sidebarInstallButton"', 'id="installModal"',
                      '/static/css/auth.css', 'How the system works'):
             assert part in html
-        assert 'id="loginModal"' not in html  # Replaced with a real routed screen
+        assert 'id="loginModal"' in html  # Native accessible popup over public landing page
         css = client.get('/static/css/auth.css')
         assert css.status_code == 200
         assert '.auth-landing' in css.text
@@ -24,7 +24,7 @@ def test_ui_delivers_login_logout_and_pwa_controls(tmp_path):
             assert part in app.text
         assert "navigate('login')" in app.text
         sw = client.get('/sw.js').text
-        assert 'queuewise-shell-v111' in sw
+        assert 'queuewise-shell-v112' in sw
         assert '/static/css/auth.css' in sw
         assert "url.pathname.startsWith('/api/')" in sw  # Never cache private API data
         manifest = client.get('/manifest.webmanifest').json()

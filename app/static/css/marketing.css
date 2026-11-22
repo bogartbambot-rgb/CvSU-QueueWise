@@ -1,0 +1,127 @@
+/* QueueWise v1.12: original green public portal, accessible sign-in dialog and registration UI. */
+.app-shell.marketing-screen {background:var(--canvas)}
+.marketing-screen .sidebar,.marketing-screen .topbar,.marketing-screen .main-footer{display:none!important}
+.marketing-screen .page{max-width:none;width:100%;min-height:100vh;padding:0;display:block;margin:0}
+.marketing-screen .main-area{width:100%;min-width:0}
+.qw-sidebar-icon{width:42px;height:42px;border-radius:12px;object-fit:contain}
+.qw-marketing-page,.qw-register-page{min-height:100vh;width:100%;color:var(--text);position:relative;isolation:isolate;background:radial-gradient(ellipse 46% 55% at 1% 78%,rgba(34,157,94,.10),transparent 73%),radial-gradient(ellipse 48% 50% at 96% 96%,rgba(57,160,92,.15),transparent 80%),var(--canvas);overflow:hidden}
+.qw-marketing-header{height:92px;max-width:1600px;margin:0 auto;padding:0 clamp(22px,4.3vw,72px);display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid var(--line);background:transparent}
+.qw-brand{display:inline-flex;align-items:center;flex:0 0 auto;text-decoration:none;line-height:1}
+.qw-brand img{display:block;width:clamp(160px,15vw,235px);height:auto;object-fit:contain;filter:drop-shadow(0 2px 2px rgba(5,56,27,.05))}
+.qw-marketing-nav{display:flex;align-items:center;gap:4px}
+.qw-marketing-nav button{background:transparent;border:0;border-radius:12px;padding:12px 17px;color:var(--text-soft);font-size:13px;font-weight:750;cursor:pointer}
+.qw-marketing-nav button:hover,.qw-marketing-nav button.current{background:var(--green-soft);color:var(--green-deep)}
+.qw-marketing-tools{display:flex;align-items:center;justify-content:flex-end;gap:9px}
+.qw-mini-button,.qw-round-button{height:40px;min-width:40px;border:1px solid var(--line);background:var(--surface);border-radius:12px;color:var(--green-deep);display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:0 13px;font-size:12px;font-weight:800;cursor:pointer}
+.qw-mini-button:hover,.qw-round-button:hover{border-color:#208b59;background:var(--green-soft)}
+.qw-mini-button svg,.qw-round-button svg{height:17px;width:17px;flex:none}
+.qw-top-signin{background:linear-gradient(130deg,#11633e,#198d52);color:white;border-color:transparent}
+.qw-top-signin:hover{background:#125b3b;color:white}
+.qw-marketing-main{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(340px,.94fr);align-items:center;gap:clamp(34px,6vw,110px);max-width:1475px;padding:clamp(64px,7vw,118px) clamp(25px,5vw,82px) 105px;margin:auto;min-height:calc(100vh - 154px)}
+.qw-marketing-intro{min-width:0}
+.qw-kicker{display:block;color:var(--green-mid);font-weight:850;font-size:11px;letter-spacing:2.3px;line-height:1.6}
+.qw-marketing-intro h1{font-size:clamp(43px,4.2vw,70px);letter-spacing:-2.9px;line-height:1.13;font-weight:850;margin:28px 0 24px;color:var(--text)}
+.qw-marketing-intro h1 em{font-style:normal;color:#198348}
+.qw-marketing-intro>p{max-width:570px;font-size:clamp(14px,1.07vw,17px);line-height:1.85;color:var(--text-soft);margin:0 0 32px}
+.qw-hero-buttons{display:flex;flex-wrap:wrap;gap:14px}
+.qw-cta{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:15px 26px;border-radius:12px;border:1px solid #11663b;background:linear-gradient(130deg,#0e6640,#1c9157);color:white;font-size:14px;font-weight:850;min-height:51px;box-shadow:0 8px 22px rgba(7,91,48,.13);text-decoration:none}
+.qw-cta svg{height:18px;width:18px;flex:none}
+.qw-cta:hover{background:linear-gradient(130deg,#075631,#147d47);transform:translateY(-1px)}
+.qw-cta-outline{background:var(--surface);color:var(--green-deep);box-shadow:none}
+.qw-cta-outline:hover{background:var(--green-soft)}
+.qw-social-proof{display:flex;align-items:center;gap:12px;margin-top:44px;font-size:12px;font-weight:750;line-height:1.55;color:var(--text-soft)}
+.qw-social-proof small{font-size:10.5px;color:var(--muted);font-weight:550}
+.qw-proof-icon{width:40px;height:40px;display:grid;place-items:center;background:var(--green-soft);border-radius:12px;color:var(--green-deep)}
+.qw-proof-icon svg{width:22px;height:22px}
+.qw-feature-panel{border:1px solid var(--line);border-radius:24px;background:var(--surface);padding:clamp(24px,3.2vw,44px);box-shadow:0 19px 70px rgba(25,62,38,.08);min-width:0}
+.qw-feature-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:0 0 24px}
+.qw-feature-heading h2{font-size:clamp(24px,2vw,32px);letter-spacing:-1px;line-height:1.15;margin:7px 0}
+.qw-feature-heading p{color:var(--text-soft);font-size:13px;line-height:1.6}
+.qw-feature-symbol{height:54px;width:54px;flex:none;display:grid;place-items:center;border-radius:15px;background:var(--green-soft);color:var(--green-deep)}
+.qw-feature-symbol svg{width:27px;height:27px}
+.qw-feature-list{display:grid;gap:10px}
+.qw-feature-line{display:flex;align-items:center;gap:17px;padding:17px 16px;background:var(--canvas);border:1px solid var(--line);border-radius:14px}
+.qw-feature-icon{height:46px;width:46px;border-radius:13px;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center;flex:none}
+.qw-feature-icon svg{height:22px;width:22px}
+.qw-feature-line strong{font-size:13px;font-weight:850;color:var(--text)}
+.qw-feature-line p{color:var(--text-soft);font-size:11.5px;line-height:1.58;margin:5px 0 0}
+.qw-feature-tick{margin-left:auto;flex:none;color:var(--green-mid)}
+.qw-feature-tick svg{height:17px;width:17px}
+.qw-marketing-footer{max-width:1480px;margin:auto;padding:22px clamp(25px,5vw,82px);border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font-size:11px}
+/* Login uses a native modal dialog with Escape/backdrop/close controls. */
+.qw-login-modal{border:1px solid #e2eae3;padding:0;width:min(94vw,500px);max-height:94dvh;overflow-y:auto;background:var(--surface);color:var(--text);border-radius:23px;box-shadow:0 35px 110px rgba(7,27,15,.33);position:fixed;margin:auto}
+.qw-login-modal::backdrop{background:rgba(9,30,21,.57);backdrop-filter:blur(3px)}
+.qw-login-popup-body{position:relative;padding:40px clamp(22px,3vw,45px) 30px;text-align:center}
+.qw-popup-close{position:absolute;right:15px;top:15px;width:37px;height:37px;border:0;border-radius:50%;display:grid;place-items:center;color:var(--text-soft);background:var(--green-soft);cursor:pointer}
+.qw-popup-close svg{height:19px;width:19px}
+.qw-popup-close:hover{background:#d5ead9}
+.qw-popup-brand{display:flex;justify-content:center;margin:0 auto 19px}
+.qw-popup-brand img{width:225px;max-width:85%;height:auto}
+.qw-login-popup-body h2{font-size:clamp(26px,2vw,33px);letter-spacing:-.8px;color:var(--text);margin:0 0 7px}
+.qw-popup-subtitle{font-size:12px;line-height:1.7;color:var(--text-soft);margin:0 0 24px}
+.qw-login-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px;background:var(--green-soft);border-radius:12px;margin-bottom:19px}
+.qw-login-tabs button{border:0;border-radius:9px;cursor:pointer;padding:11px 5px;color:var(--text-soft);background:transparent;font-size:12px;font-weight:800}
+.qw-login-tabs button.selected{background:var(--surface);color:var(--green-deep);box-shadow:0 2px 12px #0000000b}
+.qw-login-form{display:grid;gap:17px;text-align:left}
+.qw-login-form .form-label,.qw-register-form .form-label{display:flex;flex-direction:column;gap:8px;font-size:12.3px;font-weight:800;color:var(--text)}
+.qw-login-form .form-label input,.qw-register-form .form-label input:not([type="checkbox"]){width:100%;min-width:0;background:var(--input);color:var(--text);border:1px solid #a0bcae6b;border-radius:11px;height:51px;padding:0 15px;font-family:inherit;font-size:13px;outline:none}
+.qw-login-form .form-label input:focus,.qw-register-form .form-label input:focus{border-color:#20a266;box-shadow:0 0 0 3px rgba(42,155,92,.12)}
+.qw-input-wrap{position:relative;display:block}
+.qw-input-wrap input{padding-right:50px!important}
+.qw-input-wrap button{position:absolute;right:5px;top:5px;width:39px;height:calc(100% - 10px);display:grid;place-items:center;background:transparent;border:0;border-radius:8px;color:var(--text-soft);cursor:pointer}
+.qw-input-wrap button:hover{background:var(--green-soft);color:var(--green-deep)}
+.qw-input-wrap button svg{height:19px;width:19px}
+.qw-login-submit{width:100%;margin-top:3px}
+.qw-login-extra{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-top:17px}
+.qw-login-extra button,.qw-login-register button,.qw-register-footer button,.qw-privacy-consent button{padding:0;border:0;background:transparent;color:var(--green-mid);cursor:pointer;font-size:12px;font-weight:850;text-decoration:none}
+.qw-login-extra button:hover,.qw-login-register button:hover,.qw-register-footer button:hover,.qw-privacy-consent button:hover{text-decoration:underline}
+.qw-login-register{border-top:1px solid var(--line);padding-top:21px;margin-top:24px;font-size:13px;color:var(--text-soft)}
+.qw-login-register button{font-size:13px;margin-left:4px}
+.qw-login-notice{font-size:10px;color:var(--muted);display:flex;justify-content:center;gap:6px;align-items:center;margin:21px 0 0;line-height:1.45}
+.qw-login-notice svg{width:14px;height:14px}
+/* Polished separate Student / Alumni registration page */
+.qw-register-wrap{padding:45px 20px 75px;display:grid;place-items:start center}
+.qw-register-card{width:min(100%,900px);padding:clamp(24px,4vw,57px);border:1px solid var(--line);border-radius:25px;background:var(--surface);box-shadow:0 20px 65px rgba(6,53,28,.09)}
+.qw-register-heading{display:flex;align-items:flex-start;gap:21px;margin-bottom:26px}
+.qw-heading-icon{width:65px;height:65px;border-radius:17px;display:grid;place-items:center;background:var(--green-soft);color:var(--green-deep);flex:none}
+.qw-heading-icon svg{width:33px;height:33px}
+.qw-register-heading h1{font-size:clamp(26px,3.3vw,42px);letter-spacing:-1.5px;line-height:1.16;margin:5px 0 10px}
+.qw-register-heading p{font-size:13px;line-height:1.7;color:var(--text-soft);margin:0}
+.qw-register-role{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.qw-register-role .register-role-option{padding:15px 18px;border-radius:13px;gap:12px}
+.qw-register-role .register-role-option strong{font-size:14px}
+.qw-register-role .register-role-option small{font-size:11px}
+.qw-register-role .register-role-option>svg:first-child{height:24px;width:24px}
+.qw-register-form{display:flex;flex-direction:column;gap:22px}
+.qw-form-section{padding-top:26px;border-top:1px solid var(--line);display:grid;gap:20px}
+.qw-section-heading{display:flex;align-items:center;gap:13px;margin-bottom:3px}
+.qw-section-heading>span{width:45px;height:45px;border-radius:12px;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center;flex:none}
+.qw-section-heading>span svg{width:22px;height:22px}
+.qw-section-heading h2{font-size:19px;letter-spacing:-.35px;margin:0 0 5px}
+.qw-section-heading p{font-size:11.5px;color:var(--text-soft);margin:0}
+.qw-form-two{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+.qw-form-hint{font-size:11px;color:var(--text-soft);line-height:1.6;margin-top:-10px}
+.qw-verify-note{display:flex;gap:17px;align-items:flex-start;padding:19px 22px;border:1px solid #b5d9c1;border-radius:14px;background:var(--green-soft);color:var(--green-deep)}
+.qw-verify-note svg{height:25px;width:25px;flex:none}
+.qw-verify-note strong{font-size:14px;line-height:1.35}
+.qw-verify-note p{color:var(--text-soft);font-size:12px;line-height:1.65;margin:5px 0 0}
+.qw-privacy-consent{display:flex;align-items:flex-start;gap:11px;color:var(--text-soft);font-size:12px;line-height:1.7}
+.qw-privacy-consent input[type="checkbox"]{accent-color:#187d4d;width:17px;height:17px;flex:none;margin-top:2px}
+.qw-register-submit{width:100%}
+.qw-register-footer{text-align:center;color:var(--text-soft);padding-top:20px;border-top:1px solid var(--line);font-size:13px;margin-top:21px}
+.qw-register-footer button{font-size:13px;margin-left:4px}
+.qw-legacy-auth-logo{width:218px;max-width:100%;height:auto;object-fit:contain}
+.qw-privacy-modal{width:min(92vw,570px);border:1px solid var(--line);border-radius:20px;padding:0;background:var(--surface);color:var(--text);box-shadow:var(--shadow-lg)}
+.qw-privacy-modal::backdrop{background:rgba(0,23,12,.61)}
+.qw-privacy-body{position:relative;padding:37px 32px;display:grid;gap:16px}
+.qw-privacy-body h2{font-size:24px;letter-spacing:-.5px;margin:0}
+.qw-privacy-body p{font-size:12.5px;line-height:1.7;color:var(--text-soft);margin:0}
+.qw-privacy-body .qw-cta{margin-top:4px}
+.qw-login-modal button:focus-visible,.qw-marketing-page button:focus-visible,.qw-register-page button:focus-visible,.qw-privacy-modal button:focus-visible{outline:3px solid #3eb77a;outline-offset:3px}
+:root[data-theme="dark"] .qw-top-signin,:root[data-theme="dark"] .qw-cta{color:#fff}
+:root[data-theme="dark"] .qw-cta-outline{color:#93eab2;background:var(--surface)}
+:root[data-theme="dark"] .qw-marketing-intro h1 em{color:#70d99c}
+:root[data-theme="dark"] .qw-brand img,:root[data-theme="dark"] .qw-popup-brand img{filter:brightness(1.34)}
+@media(max-width:1110px){.qw-marketing-header{padding:0 24px}.qw-marketing-nav{display:none}.qw-marketing-main{gap:24px;padding:65px 30px}.qw-brand img{width:194px}}
+@media(max-width:800px){.qw-marketing-main{grid-template-columns:1fr;gap:40px;padding:55px 22px 70px}.qw-marketing-intro h1{font-size:clamp(41px,7vw,60px)}.qw-feature-panel{max-width:680px;width:100%;margin:auto}.qw-marketing-header{height:76px}.qw-brand img{width:185px}.qw-marketing-tools{gap:5px}.qw-mini-button{padding:0 10px}.qw-marketing-tools .qw-install span{display:none}.qw-marketing-tools .qw-mini-button:nth-last-child(2) span{display:none}}
+@media(max-width:530px){.qw-marketing-header{padding:0 14px;gap:7px}.qw-brand img{width:147px}.qw-marketing-tools .qw-install{display:none}.qw-marketing-tools .qw-mini-button{min-width:34px;padding:0 9px;font-size:11px}.qw-marketing-tools .qw-round-button{min-width:34px;width:34px;height:38px}.qw-marketing-main{padding:44px 18px 58px}.qw-marketing-intro h1{font-size:39px;letter-spacing:-1.8px}.qw-hero-buttons .qw-cta{flex:1;padding:13px 11px;font-size:12px}.qw-social-proof{margin-top:30px}.qw-feature-panel{padding:20px}.qw-feature-line{gap:10px;padding:12px}.qw-feature-icon{width:39px;height:39px}.qw-feature-tick{display:none}.qw-marketing-footer{flex-direction:column;gap:4px;padding:20px 18px}.qw-login-popup-body{padding:44px 20px 24px}.qw-popup-brand img{width:185px}.qw-login-modal{width:min(95vw,500px);max-height:93dvh}.qw-register-wrap{padding:24px 12px 45px}.qw-register-card{padding:23px 18px;border-radius:17px}.qw-register-heading{gap:11px}.qw-heading-icon{width:46px;height:46px}.qw-heading-icon svg{width:22px;height:22px}.qw-register-heading h1{font-size:28px;letter-spacing:-1px}.qw-register-role .register-role-option{padding:12px 9px}.qw-register-role .register-role-option strong{font-size:12px}.qw-form-two{grid-template-columns:1fr}.qw-verify-note{padding:15px}.qw-privacy-body{padding:35px 22px}}

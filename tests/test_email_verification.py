@@ -147,5 +147,5 @@ def test_ui_includes_verify_and_resend_routes(tmp_path):
         assert "view==='verify-email'" in frontend
         assert 'id="resendVerificationForm"' in frontend
         assert "api('/api/auth/verify-email'" in frontend
-        assert 'v=1.11' in c.get('/').text
+        assert 'v=1.12' in c.get('/').text
         assert c.get('/manifest.webmanifest').status_code==200

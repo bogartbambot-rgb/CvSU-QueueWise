@@ -150,5 +150,5 @@ def test_new_registration_ui_static_routes(tmp_path):
                      "view==='register'", 'data-auth-tab="staff"', 'id="requestForm"',
                      'function authFrame(', 'state.user?.role'):
             assert term in ui,term
-        assert 'v=1.11' in c.get('/').text
+        assert 'v=1.12' in c.get('/').text
         assert c.get('/manifest.webmanifest').status_code==200

@@ -7,10 +7,11 @@
   <meta name="description" content="QueueWise — an academic document request and release portal.">
   <link rel="icon" href="/static/icons/icon-192.png" type="image/png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.11">
-  <link rel="stylesheet" href="/static/css/auth.css?v=1.11">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.12">
+  <link rel="stylesheet" href="/static/css/auth.css?v=1.12">
+  <link rel="stylesheet" href="/static/css/marketing.css?v=1.12">
   <title>QueueWise | Document Request Portal</title>
-  <script src="/static/js/app.js?v=1.11" defer></script>
+  <script src="/static/js/app.js?v=1.12" defer></script>
 </head>
 <body>
   <svg class="icon-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -43,7 +44,7 @@
     <div class="mobile-overlay" id="mobileOverlay"></div>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">
-        <div class="brand-symbol" aria-hidden="true"><span>Q<span class="brand-leaf"></span></span></div>
+        <img class="qw-sidebar-icon" src="/static/icons/icon-192.png" alt="" aria-hidden="true">
         <div class="brand-label"><strong>QueueWise<span class="brand-dot">.</span></strong><small>Document Request Portal</small></div>
       </div>
       <div class="campus-card"><div class="campus-icon"><svg><use href="#i-shield"/></svg></div><div><strong>Document Services</strong><span>Students · Alumni · Registrar</span></div></div>
@@ -61,7 +62,7 @@
           <button class="side-action" data-action="install" id="sidebarInstallButton"><svg><use href="#i-download"/></svg><span>Install QueueWise PWA</span></button>
         </div>
         <div class="sidebar-help"><span class="help-spark">✦</span><strong>Need a little guidance?</strong><p>Learn how to submit and track your requests in seconds.</p><button class="inline-link" data-action="help">Explore the guide <span>↗</span></button></div>
-        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.11</span></div>
+        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.12</span></div>
       </div>
     </aside>
     <div class="main-area">
@@ -73,6 +74,8 @@
       <footer class="main-footer"><span>© <span id="year"></span> QueueWise · Academic Prototype</span><span>Built for clearer document request tracking.</span></footer>
     </div>
   </div>
+  <dialog class="qw-login-modal" id="loginModal" aria-labelledby="loginModalTitle"><div id="loginModalContent"></div></dialog>
+  <dialog class="qw-privacy-modal" id="privacyModal" aria-labelledby="privacyTitle"><div class="qw-privacy-body"><button type="button" class="qw-popup-close" data-close="privacyModal" aria-label="Close privacy notice">×</button><h2 id="privacyTitle">QueueWise Privacy Notice</h2><p>QueueWise is an academic demonstration. Registration collects your name, student number, email address and a password hash. The request system stores your selected documents, date needed, reason, and status history so authorized registrar staff can review simulated requests.</p><p>Your Student or Alumni account can access its own requests, while registrar staff can review and process submitted requests. Email addresses are used for verification. Do not enter real sensitive documents or personal information beyond what is needed for testing.</p><p>Database records are stored on the configured server. This prototype does not guarantee real university processing or a formal retention period.</p><button type="button" class="qw-cta" data-close="privacyModal">Close notice</button></div></dialog>
   <dialog class="modal help-modal" id="helpModal" aria-labelledby="helpTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-help"/></svg></span><button class="icon-button" data-close="helpModal" aria-label="Close dialog"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><p class="eyebrow">YOUR QUICK START GUIDE</p><h2 id="helpTitle">How the system works</h2><p class="modal-subtitle">A simple walkthrough of QueueWise for students, alumni, and registrar staff.</p><div class="segmented help-tabs"><button class="selected" data-help-tab="student">Student / Alumni</button><button data-help-tab="staff">Registrar Staff</button></div><div id="helpContent"></div><div class="help-note"><svg><use href="#i-info"/></svg><p>This is a school project using simulated records. Request priorities are demonstration rules, not an official registrar policy.</p></div></div></dialog>
   <dialog class="modal install-modal" id="installModal" aria-labelledby="installTitle">
     <div class="modal-heading"><span class="modal-icon"><svg><use href="#i-download"/></svg></span><button class="icon-button" data-close="installModal" aria-label="Close install instructions"><svg><use href="#i-close"/></svg></button></div>

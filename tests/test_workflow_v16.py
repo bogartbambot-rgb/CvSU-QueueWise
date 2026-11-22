@@ -12,13 +12,13 @@ def admin(c):
 def test_student_register_entry_on_login_and_calendar_ui(tmp_path):
     with TestClient(create_app(str(tmp_path/'ui.db'),testing=True)) as c:
         text=c.get('/static/js/app.js').text
-        assert 'Register as Student' in text and 'Register as Alumni' in text
+        assert 'data-register-role="Student"' in text and 'data-register-role="Alumni"' in text
         assert "action==='register-student'" in text
         assert 'function dateNeededWidget()' in text
         assert 'data-needed-day=' in text and 'apply-needed-date' in text
         html=c.get('/').text
         assert 'id="calendarNavItem"' not in html
-        assert 'v=1.11' in html
+        assert 'v=1.12' in html
         assert c.get('/manifest.webmanifest').status_code==200
 
 def test_only_registrar_can_approve_before_picking_up(tmp_path):

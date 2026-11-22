@@ -51,3 +51,13 @@ Run from the project directory (not the parent folder):
 | Separate-chaining hash lookup | O(1) average, O(N) worst case |
 
 These complexities refer to the **ADT operations**, not the full HTTP request, which also reconstructs an in-memory snapshot from SQLite rows. Never describe the full API request as guaranteed O(1) solely because hash lookup averages O(1).
+
+
+## v1.12 Browser UI smoke test
+
+1. On the signed-out public landing, click **Sign in**: the login dialog must open over the landing page.
+2. Change **Student / Alumni / Registrar** tabs in the dialog, then close with the × button or Esc. Tab selection changes the login form.
+3. Click **Create an account**: dedicated registration form, not the login dialog. Switch Student/Alumni; the identification label should update.
+4. Verify the password visibility control, required checkbox consent, Privacy Notice popup and light/dark mode.
+5. Sign in using an authorized test account to verify protected dashboards, requests, multi-document submission and admin approval.
+6. Check PWA install and both desktop/mobile layouts. Gmail API email delivery must be tested separately with configured Railway credentials.

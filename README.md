@@ -1,3 +1,13 @@
+# QueueWise v1.12 — All-in-One Full-Stack PWA
+
+This ZIP includes the entire previous v1.11 QueueWise project **plus** a brand-new public landing page, a real login popup over that page, a separate Student/Alumni registration page, and the custom QueueWise logo and PWA icons.
+
+**New v1.12 pages:** `/#dashboard` (signed-out landing), `/#login` (login modal), `/#register` (registration page), and `/#verify-email` (existing verification screen). Once signed in, the registered role's protected dashboard, requests, notifications, profile, admin approvals, multi-document requests and pickup scheduling remain.
+
+See **UPGRADE_TO_V1_12.md** for exact Windows, GitHub and Railway instructions. Keep your existing `/data` Railway volume and Gmail API variables. This is a school prototype, not an official registrar service.
+
+---
+
 # QueueWise v1.11 — All-in-One Document Request PWA
 
 **Python FastAPI · SQLite (DB Browser compatible) · Gmail API email verification · Student/Alumni portals · Registrar portal · Installable PWA**

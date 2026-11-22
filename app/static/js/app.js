@@ -121,6 +121,7 @@ function updateChrome() {
   $('#headerAuthText').textContent = state.user ? 'Log out' : 'Sign in';
   $('#headerAuthButton').classList.toggle('signed-in',!!state.user);
   $('#appShell').classList.toggle('auth-screen', ['login','register','verify-email'].includes(state.view));
+  $('#appShell').classList.toggle('marketing-screen', !state.user && ['dashboard','login','register','verify-email'].includes(state.view));
   updateInstallUI();
   const count = state.user ? (state.unread || 0) : 0;
   $('#navBadge').textContent = String(count>99?'99+':count);
@@ -154,12 +155,19 @@ async function render() {
       state.notifications = feed.notifications; state.unread = feed.unread;
     }
     if (ticket!==state.renderToken) return;
-    const html = view==='login' ? loginPage() : view==='register' ? registerPage() : view==='verify-email' ? verifyEmailPage() : view==='dashboard' ? (isStaff()?adminDashboard():isRequester()?requesterDashboard():publicDashboard())
+    const html = view==='login' ? loginPage() : view==='register' ? registerPage() : view==='verify-email' ? verifyEmailPage() : view==='dashboard' ? (isStaff()?adminDashboard():isRequester()?requesterDashboard():marketingLandingPage())
       : view==='requests' ? (isStaff()?adminRequests():publicRequests())
       : view==='claimed' ? claimedPage()
       : view==='notifications' ? notificationsPage() : isDetailView(view) ? dashboardDetailPage(view) : profilePage();
     target.innerHTML = html;
     updateChrome();
+    if (view==='login' && !state.user) {
+      $('#loginModalContent').innerHTML=loginModalMarkup();
+      openModal('loginModal');
+    } else {
+      closeModal('loginModal');
+      $('#loginModalContent').innerHTML='';
+    }
     if (view==='requests' && isStaff()) renderStaffRows();
     if (view==='claimed' && isStaff()) renderClaimedRows();
     if (!state.user && state.trackedResult && $('#inlineTrackResult')) $('#inlineTrackResult').innerHTML=renderTrackCard(state.trackedResult);
@@ -171,7 +179,7 @@ async function render() {
 }
 function authFrame(formHtml, register=false) {
   return `<div class="auth-landing"><div class="auth-frame">
-    <header class="auth-header"><div class="auth-brand"><span class="auth-brand-icon">Q<span class="auth-brand-spark">✦</span></span><span><strong>QueueWise<span class="brand-dot">.</span></strong><small>DOCUMENT REQUEST & RELEASE PORTAL</small></span></div>
+    <header class="auth-header"><div class="auth-brand"><img src="/static/icons/queuewise-logo.png" class="qw-legacy-auth-logo" alt="QueueWise document request portal"></div>
     <div class="auth-header-actions"><button class="auth-header-link" data-action="help">${icon('help')}<span>How it works</span></button><button class="auth-header-link" data-action="theme">${icon('moon')}<span>Appearance</span></button><button class="auth-header-link auth-home-link" data-action="go-dashboard">${icon('home')}<span>Public portal</span></button></div></header>
     <div class="auth-columns"><section class="auth-story" aria-label="QueueWise introduction">
       <p class="auth-kicker"><span></span> A SMARTER WAY TO REQUEST DOCUMENTS</p><h1>Your documents, <span>one simple portal.</span></h1>
@@ -188,44 +196,84 @@ function authFrame(formHtml, register=false) {
     </section></div><footer class="auth-footer"><span>© ${new Date().getFullYear()} QueueWise · Academic demonstration only</span><span>Built with Python + SQLite · PWA ready</span></footer>
   </div></div>`;
 }
-function loginPage() {
+function marketingBrand(extraClass='') {
+  return `<a href="#dashboard" class="qw-brand ${extraClass}" aria-label="QueueWise home"><img src="/static/icons/queuewise-logo.png" alt="QueueWise" loading="eager"></a>`;
+}
+function marketingHeader(active='home') {
+  return `<header class="qw-marketing-header">${marketingBrand('qw-marketing-brand')}
+    <nav class="qw-marketing-nav" aria-label="Public navigation"><button type="button" class="${active==='home'?'current':''}" data-action="go-dashboard">Home</button><button type="button" data-action="focus-features">Features</button></nav>
+    <div class="qw-marketing-tools"><button type="button" class="qw-mini-button qw-install" data-action="install">${icon('download')}<span>Install app</span></button><button type="button" class="qw-round-button" data-action="help" aria-label="How the system works">${icon('help')}</button><button type="button" class="qw-mini-button" data-action="theme" aria-label="Toggle light or dark mode">${icon('moon')}<span>Theme</span></button><button type="button" class="qw-mini-button qw-top-signin" data-action="login">Sign in</button></div>
+  </header>`;
+}
+function marketingLandingPage() {
+  const features=[
+    {iconName:'document',name:'Document requests',desc:'Request several documents using one reference number.'},
+    {iconName:'bell',name:'Status notifications',desc:'Get updates when the registrar reviews your request.'},
+    {iconName:'check',name:'Pickup scheduling',desc:'See the date and time assigned by registrar staff.'},
+    {iconName:'shield',name:'Private accounts',desc:'Only your own requests appear in your Student or Alumni portal.'}
+  ];
+  return `<div class="qw-marketing-page">${marketingHeader()}
+   <main class="qw-marketing-main"><section class="qw-marketing-intro" aria-labelledby="qwHeroTitle"><span class="qw-kicker">DOCUMENT REQUEST PORTAL</span>
+     <h1 id="qwHeroTitle">Request documents.<br>Follow every step.<br><em>Stay informed.</em></h1>
+     <p>One convenient space for students and alumni to submit academic document requests, review approvals, and view pickup schedules.</p>
+     <div class="qw-hero-buttons"><button type="button" class="qw-cta" data-action="login">Sign in ${icon('arrow')}</button><button type="button" class="qw-cta qw-cta-outline" data-action="register">Create an account ${icon('arrow')}</button></div>
+     <div class="qw-social-proof"><span class="qw-proof-icon">${icon('shield')}</span><span>Secure account access and email verification<br><small>School prototype · Not an official registrar service</small></span></div>
+   </section>
+   <section class="qw-feature-panel" id="qwFeatures" aria-labelledby="qwFeaturesTitle"><div class="qw-feature-heading"><div><span class="qw-kicker">BUILT AROUND YOUR REQUESTS</span><h2 id="qwFeaturesTitle">Everything in one place.</h2><p>A simpler way to organize your documents.</p></div><span class="qw-feature-symbol">${icon('document')}</span></div>
+   <div class="qw-feature-list">${features.map(f=>`<div class="qw-feature-line"><span class="qw-feature-icon">${icon(f.iconName)}</span><div><strong>${f.name}</strong><p>${f.desc}</p></div><span class="qw-feature-tick">${icon('check')}</span></div>`).join('')}</div></section></main>
+   <footer class="qw-marketing-footer"><span>© ${new Date().getFullYear()} QueueWise · Academic prototype</span><span>Python · SQLite · PWA</span></footer>
+  </div>`;
+}
+// Keep the deep-link #login while presenting the form as an accessible modal over the public page.
+function loginPage() { return marketingLandingPage(); }
+function loginModalMarkup() {
   const staff=state.authTab==='staff';
   const role=state.authTab==='Alumni'?'Alumni':'Student';
-  const roleDescription=staff?'Access the secure document queue and registrar operations.':role==='Alumni'?'Access graduate document requests, release updates, and your alumni records.':'Access current student document requests, deadlines, and your own status updates.';
-  return authFrame(`<div class="auth-signin-icon">${icon(staff?'shield':'user')}</div><p class="eyebrow">${staff?'REGISTRAR ACCESS':`${role.toUpperCase()} PORTAL`}</p>
-    <h2>${staff?'Registrar sign in.':role==='Alumni'?'Welcome back, graduate.':'Welcome back, student.'}</h2><p class="auth-card-intro">${roleDescription}</p>
-    <div class="auth-role-tabs auth-role-tabs-three" role="tablist" aria-label="Choose account type">
-      <button type="button" role="tab" aria-selected="${!staff && role==='Student'}" class="${!staff && role==='Student'?'selected':''}" data-auth-tab="Student">Student</button>
-      <button type="button" role="tab" aria-selected="${!staff && role==='Alumni'}" class="${!staff && role==='Alumni'?'selected':''}" data-auth-tab="Alumni">Alumni</button>
-      <button type="button" role="tab" aria-selected="${staff}" class="${staff?'selected':''}" data-auth-tab="staff">Registrar</button></div>
-    ${staff?`<form id="loginForm" class="form-stack"><label class="form-label">Username<input id="username" name="username" autocomplete="username" required maxlength="100" placeholder="Registrar username" value="admin"></label><label class="form-label">Password<input name="password" type="password" autocomplete="current-password" required maxlength="256" placeholder="Your staff password"></label><p id="authError" class="auth-error hidden" role="alert"></p><button class="button primary full auth-submit" id="loginSubmit" type="submit">Sign in as registrar ${icon('arrow')}</button></form>`
-    :`<form id="requesterLoginForm" class="form-stack"><input type="hidden" name="account_type" value="${role}"><label class="form-label">${role} email address<input type="email" name="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"></label><label class="form-label">Password<input type="password" name="password" autocomplete="current-password" maxlength="256" required placeholder="Enter your password"></label><p id="authError" class="auth-error hidden" role="alert"></p><button class="button primary full auth-submit" id="requesterLoginSubmit" type="submit">Enter ${role} Portal ${icon('arrow')}</button></form>`}
-    ${!staff?`<div class="auth-form-bottom"><span>Not verified yet?</span><button class="inline-link" data-action="verify-email">Resend verification email ${icon('arrow')}</button></div>`:''}
-    <div class="auth-join-box"><span class="auth-join-label">NEW TO QUEUEWISE?</span><p>Create a free account to request documents. An email verification link is required before sign-in.</p><div class="auth-join-actions"><button class="button outline sm" type="button" data-action="register-student">${icon('user')} Register as Student</button><button class="button outline sm" type="button" data-action="register-alumni">${icon('document')} Register as Alumni</button></div></div>
-    <div class="auth-private-note">${icon('shield')} Account permissions are checked on the server.</div>
-    <div class="auth-form-bottom"><span>${staff?'Requesting a document?':'Already have an account?'}</span><button class="inline-link" data-action="${staff?'switch-requester':'login'}">${staff?'Student / Alumni sign in':'Choose a sign-in tab above'} ${icon('arrow')}</button></div>`,false);
+  return `<div class="qw-login-popup-body"><button type="button" class="qw-popup-close" data-action="close-login" aria-label="Close sign in dialog">${icon('close')}</button>
+      ${marketingBrand('qw-popup-brand')}<h2 id="loginModalTitle">Welcome back!</h2><p class="qw-popup-subtitle">Sign in to your QueueWise account and manage document requests.</p>
+      <div class="qw-login-tabs" role="tablist" aria-label="Choose account type">
+         <button type="button" role="tab" aria-selected="${!staff&&role==='Student'}" class="${!staff&&role==='Student'?'selected':''}" data-auth-tab="Student">Student</button>
+         <button type="button" role="tab" aria-selected="${!staff&&role==='Alumni'}" class="${!staff&&role==='Alumni'?'selected':''}" data-auth-tab="Alumni">Alumni</button>
+         <button type="button" role="tab" aria-selected="${staff}" class="${staff?'selected':''}" data-auth-tab="staff">Registrar</button>
+      </div>
+      ${staff?`<form id="loginForm" class="qw-login-form"><label class="form-label">Registrar username<input id="username" name="username" autocomplete="username" maxlength="100" placeholder="Enter username" required></label>
+        <label class="form-label">Password<span class="qw-input-wrap"><input id="loginPass" type="password" name="password" autocomplete="current-password" maxlength="256" placeholder="Enter your password" required><button type="button" data-action="toggle-auth-password" data-target="loginPass" aria-label="Show password">${icon('eye')}</button></span></label>
+        <p class="auth-error hidden" id="authError" role="alert"></p><button type="submit" class="qw-cta qw-login-submit" id="loginSubmit">Sign in as registrar ${icon('arrow')}</button></form>`:
+        `<form id="requesterLoginForm" class="qw-login-form"><input type="hidden" name="account_type" value="${role}">
+        <label class="form-label">Email address<input type="email" name="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required></label>
+        <label class="form-label">Password<span class="qw-input-wrap"><input id="loginPass" type="password" name="password" autocomplete="current-password" maxlength="256" placeholder="Enter your password" required><button type="button" data-action="toggle-auth-password" data-target="loginPass" aria-label="Show password">${icon('eye')}</button></span></label>
+        <p class="auth-error hidden" id="authError" role="alert"></p><button type="submit" class="qw-cta qw-login-submit" id="requesterLoginSubmit">Sign in to ${role} Portal ${icon('arrow')}</button></form>`}
+      <div class="qw-login-extra">${!staff?`<button type="button" data-action="verify-email">Resend verification link</button>`:''}<button type="button" data-action="forgot-password">Forgot password?</button></div>
+      <div class="qw-login-register">Don't have an account? <button type="button" data-action="register">Register</button></div>
+      <p class="qw-login-notice">${icon('shield')} Authorized staff alone can manage or approve requests.</p>
+    </div>`;
 }
 function registerPage() {
-  const alumni=state.registerRole==='Alumni';
-  const role=alumni?'Alumni':'Student';
-  return authFrame(`<div class="auth-signin-icon">${icon('user')}</div><p class="eyebrow" id="registerEyebrow">${role.toUpperCase()} REGISTRATION</p><h2 id="registerHeadline">Create your ${role.toLowerCase()} account.</h2>
-    <p class="auth-card-intro" id="registerIntro">${alumni?'An alumni account gives you a private workspace for graduate credential requests and collection updates.':'A student account gives you a private workspace for academic requirements and request status updates.'}</p>
-    <div class="register-role-picker" role="group" aria-label="Select your registration type">
+  const alumni=state.registerRole==='Alumni';const role=alumni?'Alumni':'Student';
+  return `<div class="qw-register-page">${marketingHeader('register')}<div class="qw-register-wrap"><section class="qw-register-card" aria-labelledby="registerHeadline">
+    <div class="qw-register-heading"><span class="qw-heading-icon">${icon('user')}</span><div><span class="qw-kicker" id="registerEyebrow">${role.toUpperCase()} REGISTRATION</span><h1 id="registerHeadline">Create your account</h1><p id="registerIntro">${alumni?'Create your alumni account to request academic records and monitor release schedules.':'Create your student account to request academic documents and track their progress.'}</p></div></div>
+    <div class="qw-register-role" role="group" aria-label="Select account type">
       <button type="button" class="register-role-option ${alumni?'':'selected'}" data-register-role="Student" aria-pressed="${!alumni}">${icon('user')}<span><strong>Student</strong><small>Currently enrolled</small></span>${icon('check')}</button>
       <button type="button" class="register-role-option ${alumni?'selected':''}" data-register-role="Alumni" aria-pressed="${alumni}">${icon('document')}<span><strong>Alumni</strong><small>Former student / graduate</small></span>${icon('check')}</button>
     </div>
-    <form id="registerForm" class="form-stack">
+    <form id="registerForm" class="qw-register-form">
       <input type="hidden" id="registerType" name="account_type" value="${role}">
-      <label class="form-label"><span>Full name <span class="required">*</span></span><input name="full_name" minlength="2" maxlength="60" autocomplete="name" placeholder="e.g. Juan Dela Cruz" required></label>
-      <label class="form-label"><span id="registrationNumberCaption">${alumni?'Former student number':'Student number'}</span> <span class="required">*</span><input name="student_number" minlength="5" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9-]{4,23}" placeholder="${alumni?'e.g. 2018-12345':'e.g. 2026-12345'}" required></label>
-      <label class="form-label"><span>Email address <span class="required">*</span></span><input type="email" name="email" maxlength="254" autocomplete="email" placeholder="you@example.com" required></label>
-      <div class="auth-pass-columns"><label class="form-label"><span>Create password <span class="required">*</span></span><input type="password" name="password" minlength="10" maxlength="128" autocomplete="new-password" required></label><label class="form-label"><span>Confirm password <span class="required">*</span></span><input type="password" name="confirm_password" minlength="10" maxlength="128" autocomplete="new-password" required></label></div>
-      <small class="password-hint">At least 10 characters, with uppercase, lowercase, a number, and a symbol. Verify your email before your first login.</small>
-      <p id="registerError" class="auth-error hidden" role="alert"></p>
-      <button type="submit" class="button primary full auth-submit" id="registerSubmit">Create ${role.toLowerCase()} account ${icon('arrow')}</button>
+      <div class="qw-form-section"><div class="qw-section-heading"><span>${icon('user')}</span><div><h2>Account details</h2><p>Enter your personal and academic information.</p></div></div>
+        <label class="form-label">Full name <span class="required">*</span><input name="full_name" autocomplete="name" minlength="2" maxlength="60" placeholder="e.g. Juan Dela Cruz" required></label>
+        <div class="qw-form-two"><label class="form-label"><span><span id="registrationNumberCaption">${alumni?'Former student number':'Student number'}</span> <span class="required">*</span></span><input name="student_number" minlength="5" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9-]{4,23}" placeholder="${alumni?'e.g. 2018-12345':'e.g. 2026-12345'}" required></label>
+        <label class="form-label">Email address <span class="required">*</span><input type="email" name="email" maxlength="254" autocomplete="email" placeholder="you@example.com" required></label></div>
+      </div>
+      <div class="qw-form-section"><div class="qw-section-heading"><span>${icon('shield')}</span><div><h2>Set your password</h2><p>Protect your account with a strong password.</p></div></div>
+        <div class="qw-form-two"><label class="form-label">Create password <span class="required">*</span><span class="qw-input-wrap"><input id="registerPass" type="password" name="password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="Create password" required><button type="button" data-action="toggle-auth-password" data-target="registerPass" aria-label="Show password">${icon('eye')}</button></span></label>
+        <label class="form-label">Confirm password <span class="required">*</span><span class="qw-input-wrap"><input id="registerConfirm" type="password" name="confirm_password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="Confirm password" required><button type="button" data-action="toggle-auth-password" data-target="registerConfirm" aria-label="Show password">${icon('eye')}</button></span></label></div>
+        <small class="qw-form-hint">At least 10 characters, with uppercase, lowercase, a number, and a symbol.</small>
+      </div>
+      <div class="qw-verify-note">${icon('bell')}<div><strong>Email verification required</strong><p>We'll email you a verification link. Your account can't be used until you've verified your email address. Links expire after 24 hours.</p></div></div>
+      <label class="qw-privacy-consent"><input type="checkbox" name="consent" value="yes" required><span>I agree to the <button type="button" data-action="privacy">Privacy Notice</button> and understand this is a simulated academic project.</span></label>
+      <p id="registerError" class="auth-error hidden" role="alert"></p><button type="submit" id="registerSubmit" class="qw-cta qw-register-submit">Create ${role.toLowerCase()} account ${icon('arrow')}</button>
     </form>
-    <div class="auth-private-note">${icon('shield')} The email verification link expires in 24 hours. This is a school prototype and does not verify institutional enrollment or graduation.</div>
-    <div class="auth-form-bottom"><span>Already registered?</span><button class="inline-link" data-action="login">Sign in ${icon('arrow')}</button></div>`,true);
+    <div class="qw-register-footer">Already registered? <button type="button" data-action="login">Sign in</button></div>
+  </section></div><footer class="qw-marketing-footer"><span>© ${new Date().getFullYear()} QueueWise · Academic prototype</span><span>Requests are not official university submissions.</span></footer></div>`;
 }
 function switchRegistrationRole(role) {
   if (!['Student','Alumni'].includes(role)) return;
@@ -575,6 +623,11 @@ async function executeAction(action, element) {
   if (action==='register-alumni') {state.registerRole='Alumni';return navigate('register');}
   if (action==='go-claimed') return navigate('claimed');
   if (action==='go-dashboard') return navigate('dashboard');
+  if (action==='focus-features') {$('#qwFeatures')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  if (action==='close-login') {closeModal('loginModal');return navigate('dashboard');}
+  if (action==='forgot-password') {toast('Password recovery is not configured in this prototype. Contact the registrar administrator for assistance.',true);return;}
+  if (action==='privacy') {return openModal('privacyModal');}
+  if (action==='toggle-auth-password') {const field=document.getElementById(element.dataset.target);if(field){field.type=field.type==='password'?'text':'password';element.setAttribute('aria-label',field.type==='password'?'Show password':'Hide password');}return;}
   if (action==='open-dashboard-card') {const detail=element.dataset.detail;if(!detailViews.includes(detail)) throw Error('Unknown dashboard section.');return navigate(detail);}
   if (action==='show-tracked-detail') {const id=element.dataset.id;const found=(state.publicTracked||[]).find(item=>item.request.id===id);if(!found)throw Error('The request is not currently available. Refresh and try again.');const node=$('#inlineTrackResult');if(node){node.innerHTML=renderTrackCard(found);node.scrollIntoView({behavior:'smooth',block:'nearest'});}return;}
   if (action==='profile') return navigate('profile');
@@ -744,6 +797,8 @@ document.addEventListener('change',event=>{
   if(event.target.id==='staffFilter'){state.filter=event.target.value;renderStaffRows();}
   if(event.target.id==='requesterFilter'){state.requesterFilter=event.target.value;renderStaffRows();}
 });
+$('#loginModal').addEventListener('cancel',event=>{event.preventDefault();navigate('dashboard');});
+$('#loginModal').addEventListener('click',event=>{if(event.target.id==='loginModal')navigate('dashboard');});
 $('#helpButton').addEventListener('click',()=>{state.helpTab='student';renderHelp();openModal('helpModal');});
 $('#themeButton').addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
 $('#menuToggle').addEventListener('click',()=>$('#appShell').classList.toggle('menu-open'));

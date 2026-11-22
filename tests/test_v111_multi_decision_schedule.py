@@ -147,7 +147,7 @@ def test_user_interface_has_new_controls_and_no_university_brand(tmp_path):
         js=c.get('/static/js/app.js').text
         assert 'Cavite State University' not in html+js
         assert 'CvSU ' not in html+js
-        assert 'v1.11' in html
+        assert 'v1.12' in html
         for expected in ('reviewModal','cancelModal','cancelRequestForm'):
             assert expected in html
         for expected in ('doc-option-grid','date_reason','reviewRequestHtml','open-cancel','approve-request','decline-request','schedule-pickup'):
