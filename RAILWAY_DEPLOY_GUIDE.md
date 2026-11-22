@@ -21,8 +21,8 @@ git push -u origin main
 If Git does not know your identity, set:
 
 ```powershell
-git config --global user.name "Your Name"
-git config --global user.email "you@example.com"
+git config --local user.name "Your Name"
+git config --local user.email "you@example.com"
 ```
 
 Sign in with Git Credential Manager / browser when prompted. Do not put passwords or `.db` files in GitHub.
@@ -31,7 +31,7 @@ Sign in with Git Credential Manager / browser when prompted. Do not put password
 
 1. Open <https://railway.com> and create a project **Deploy from GitHub repo**. Authorize GitHub and select `CvSU-QueueWise`.
 2. Check service root directory `/` if `run.py` is at repo root. If you uploaded the **parent** directory and the code is inside `CvSU_QueueWise_PWA`, set service **Root Directory** to `/CvSU_QueueWise_PWA` instead.
-3. Under **Settings → Deploy → Start Command**, set **`python run.py`**. The code uses Railway's provided `PORT` variable. No `railway.json` is required.
+3. Under **Settings → Deploy → Start Command**, set **`python run.py`**. The code uses Railway's provided `PORT` variable. The repository now includes `railway.toml` with the same start command, which also works if the Railway dashboard setting is not configured.
 4. Under **Variables**, add these keys (generate **your own secure unique secret and admin password**):
 
 | Variable | Value |
@@ -55,6 +55,10 @@ python -c "import secrets; print(secrets.token_hex(32))"
 7. **Settings → Networking → Public Networking → Generate Domain**, and visit the generated **HTTPS** address.
 8. Log in at `https://YOUR-DOMAIN.up.railway.app/#login` using username `admin` and the password you set in `QUEUEWISE_ADMIN_PASSWORD` for the first database initialization. Change the password in **Profile → Security settings** after logging in.
 9. Test: submit a test document request, sign in, update its status, restart/redeploy your service, and verify the request still exists. Then check that Chrome/Edge offers the PWA install option (on HTTPS).
+
+## Email verification on live Railway
+
+For real Student/Alumni verification email, also set `RESEND_API_KEY`, `QUEUEWISE_EMAIL_FROM` (verified sender/domain in Resend), and `QUEUEWISE_PUBLIC_URL` (your actual public HTTPS Railway domain). Without all three, registration will return a configuration error; automated tests do not send real mail.
 
 ## 3. Very important SQLite notes
 

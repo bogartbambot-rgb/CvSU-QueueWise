@@ -80,3 +80,129 @@
 @media(max-width:545px){.auth-landing{padding:0}.auth-frame{border-radius:0;border:none;min-height:100vh}.auth-header{padding:15px 17px}.auth-brand{gap:10px}.auth-brand-icon{height:42px;width:42px;border-radius:13px;font-size:27px}.auth-brand strong{font-size:24px}.auth-brand small{letter-spacing:.2px;font-size:7px}.auth-story{padding:38px 22px 30px}.auth-story h1{font-size:42px;letter-spacing:-2px}.auth-kicker{font-size:9px;letter-spacing:1.5px}.auth-description{font-size:13px;line-height:1.75}.auth-feature-grid{grid-template-columns:1fr}.auth-feature:last-child{grid-column:auto}.auth-signin{padding:25px 16px 38px}.auth-signin-card{padding:25px 20px}.auth-install{flex-wrap:wrap}.auth-install .button{margin-left:auto}.auth-footer{flex-direction:column;align-items:flex-start;gap:4px;padding:18px 20px}.top-auth-button{width:39px;padding:0}.top-auth-button span{display:none}}
 
 @media(max-width:545px){.auth-header .auth-home-link{display:none}}
+
+/* v1.4 Student/Alumni registration, account-selection and requester workspace */
+.auth-role-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:var(--green-soft);border-radius:12px;margin:0 0 22px}
+.auth-role-tabs button{min-height:42px;padding:9px 8px;border:none;background:transparent;color:var(--text-soft);font-size:12px;font-weight:750;border-radius:9px;cursor:pointer}
+.auth-role-tabs button.selected{background:var(--surface);color:var(--green-deep);box-shadow:0 3px 12px #143c241a}
+.auth-role-tabs button:focus-visible{outline:2px solid var(--green-mid)}
+.auth-signin-card .form-label select{height:50px;font-size:13px;border:1px solid var(--line);background:var(--input);border-radius:10px;padding:0 14px;color:var(--text)}
+.auth-pass-columns{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.password-hint{display:block;color:var(--text-soft);font-size:11px;line-height:1.6;margin-top:-10px}
+.requester-banner{padding:32px;border-radius:17px;background:linear-gradient(115deg,#0e623b,#22945d);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:30px;margin-bottom:20px}
+.requester-banner h2{font-size:clamp(22px,2.4vw,31px);line-height:1.3;letter-spacing:-.8px;max-width:640px;margin:6px 0 10px}
+.requester-banner p{max-width:590px;line-height:1.7;font-size:12px;color:#e5ffec}
+.requester-banner .eyebrow{color:#b1f1d0}
+.requester-banner-symbol{border:1px solid #ffffff45;background:#ffffff19;width:94px;height:94px;display:grid;place-items:center;flex:none;border-radius:25px}
+.requester-banner-symbol svg{height:42px;width:42px}
+.guest-request-prompt{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.guest-request-prompt h2{font-size:22px}
+.guest-request-prompt p{color:var(--text-soft);max-width:540px;line-height:1.7}
+.guest-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.form-grid textarea{width:100%;resize:vertical;min-height:90px;border:1px solid var(--line);border-radius:11px;background:var(--input);color:var(--text);padding:13px 14px;font-family:inherit;font-size:13px}
+@media(max-width:650px){.auth-pass-columns{grid-template-columns:1fr}.requester-banner{padding:23px}.requester-banner-symbol{display:none}.auth-role-tabs button{font-size:11px}}
+
+/* v1.5: clear Student and Alumni account selection on one accessible registration form */
+.auth-role-tabs-three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.register-role-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:4px 0 23px}
+.register-role-option{display:flex;align-items:center;gap:9px;text-align:left;padding:14px 12px;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:12px;cursor:pointer;min-width:0}
+.register-role-option>svg:first-child{width:21px;height:21px;flex:none;color:var(--green-mid)}
+.register-role-option>svg:last-child{width:16px;height:16px;margin-left:auto;opacity:0;flex:none;color:var(--green-deep)}
+.register-role-option span{min-width:0;display:block}
+.register-role-option strong{display:block;font-size:12px;font-weight:800}
+.register-role-option small{display:block;color:var(--text-soft);font-size:10px;margin-top:4px}
+.register-role-option.selected{border-color:#29965e;background:var(--green-soft);box-shadow:inset 0 0 0 1px #29965e44}
+.register-role-option.selected>svg:last-child{opacity:1}
+.register-role-option:focus-visible{outline:3px solid #3cb57a;outline-offset:2px}
+.requester-banner.alumni-portal{background:linear-gradient(115deg,#123f38,#248076)}
+.role-info-row{display:flex;align-items:center;gap:14px;padding:19px 22px;border:1px solid var(--line);border-radius:16px;background:var(--surface);margin-bottom:21px}
+.role-info-row .role-info-icon{height:46px;width:46px;display:grid;place-items:center;border-radius:12px;flex:none;background:var(--green-soft);color:var(--green-deep)}
+.role-info-row .role-info-icon svg{width:23px;height:23px}
+.role-info-row strong{font-size:14px;font-weight:800;color:var(--text)}
+.role-info-row p{font-size:12px;color:var(--text-soft);line-height:1.6;margin-top:3px}
+.role-info-row .button{margin-left:auto;flex:none}
+@media(max-width:680px){.role-info-row{flex-wrap:wrap}.role-info-row .button{width:100%;margin-left:0}.register-role-option{padding:12px 8px}.register-role-option>svg:first-child{width:17px;height:17px}}
+
+/* v1.6 - Explicit registration CTA and polished Student Academic Calendar */
+.auth-join-box{margin-top:20px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--green-soft)}
+.auth-join-label{font-size:10px;font-weight:800;letter-spacing:1.2px;color:var(--green-deep)}
+.auth-join-box p{color:var(--text-soft);line-height:1.65;font-size:11.5px;margin:7px 0 14px}
+.auth-join-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.auth-join-actions .button{min-height:44px;font-size:11px;white-space:normal;text-align:center;justify-content:center}
+.auth-join-actions .button svg{height:16px;width:16px}
+.calendar-hero{display:flex;align-items:center;justify-content:space-between;gap:28px;padding:28px 32px;margin-bottom:17px;background:linear-gradient(115deg,#0b603b,#1fa668);border-radius:18px;color:white;overflow:hidden}
+.calendar-hero .eyebrow{color:#c2f7da}.calendar-hero h2{font-size:clamp(21px,2.5vw,30px);letter-spacing:-.8px;line-height:1.2;margin:6px 0 10px}.calendar-hero p:not(.eyebrow){font-size:12px;line-height:1.7;max-width:630px;color:#e1f9ec}
+.calendar-hero-art{height:98px;width:98px;border-radius:25px;display:grid;place-items:center;background:#ffffff23;border:1px solid #ffffff46;transform:rotate(-9deg);flex:none}.calendar-hero-art svg{height:48px;width:48px}
+.calendar-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.calendar-summary>div{border:1px solid var(--line);border-radius:13px;padding:15px 18px;background:var(--surface);display:flex;flex-direction:column;gap:6px}.calendar-summary span{color:var(--text-soft);font-size:11px}.calendar-summary strong{font-size:24px;font-weight:800;color:var(--text)}
+.calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,310px);gap:18px;align-items:start}
+.calendar-panel{padding:22px;overflow:hidden}.calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:23px;flex-wrap:wrap}.calendar-toolbar h2{font-weight:800;font-size:24px;letter-spacing:-.6px;margin:4px 0 0;color:var(--text)}
+.calendar-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.calendar-control,.calendar-switch button{cursor:pointer;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font-size:11px;font-weight:750;min-height:34px;padding:7px 12px}.calendar-control:hover,.calendar-switch button:hover{background:var(--green-soft)}.calendar-control:focus-visible,.calendar-switch button:focus-visible,.calendar-date:focus-visible{outline:2px solid var(--green-mid);outline-offset:2px}.calendar-arrow{min-width:34px;padding:2px 8px;font-size:22px;line-height:24px}
+.calendar-switch{margin-left:6px;display:flex;gap:2px;background:var(--green-soft);padding:3px;border-radius:10px}.calendar-switch button{border:0;background:none}.calendar-switch button.selected{background:var(--surface);color:var(--green-deep);box-shadow:0 1px 6px #0b462124}
+.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.calendar-weekdays{border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;overflow:hidden}.calendar-weekdays span{text-align:center;font-size:10px;font-weight:800;color:var(--text-soft);padding:12px 0;text-transform:uppercase;letter-spacing:.7px;background:var(--input)}
+.calendar-grid{border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:0 0 12px 12px;overflow:hidden}.calendar-date{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:9px 7px;min-height:89px;text-align:left;background:var(--surface);border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--text);cursor:pointer;min-width:0;transition:background .15s}.calendar-date:hover{background:var(--green-soft)}.calendar-date.is-selected{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green-mid)}.calendar-date.calendar-outside{opacity:.46}.calendar-day-number{font-size:12px;font-weight:750;width:24px;height:24px;display:grid;place-items:center;border-radius:9px;flex:none}.calendar-date.is-today .calendar-day-number{background:var(--green-deep);color:#fff}
+.calendar-event-label{display:block;max-width:100%;padding:4px 6px;border-radius:6px;background:#d7f5e4;color:#155c38;font-size:9px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.calendar-event-more{font-size:9px;font-weight:700;color:var(--text-soft)}.calendar-dot{position:absolute;width:6px;height:6px;border-radius:100%;right:8px;top:14px;background:#1a9660}
+.calendar-legend{display:flex;align-items:center;gap:17px;flex-wrap:wrap;font-size:10px;color:var(--text-soft);padding-top:15px}.calendar-legend>span{display:flex;align-items:center;gap:6px}.legend-dot{width:8px;height:8px;border-radius:100%;background:#1a9660}.legend-ring{width:12px;height:12px;border-radius:50%;border:3px solid var(--green-mid)}
+.calendar-aside{display:grid;gap:16px}.calendar-details,.calendar-upcoming{padding:22px}.calendar-details h2,.calendar-upcoming h2{font-size:18px;line-height:1.3;color:var(--text);margin:4px 0 15px}.calendar-details-head{border-bottom:1px solid var(--line);margin-bottom:12px}.calendar-detail-event{display:flex;align-items:flex-start;flex-direction:column;gap:9px;padding:15px 0;border-bottom:1px solid var(--line)}.calendar-detail-event:last-child{border:0}.calendar-event-id{font-size:10px;letter-spacing:.5px;color:var(--green-mid);font-weight:800}.calendar-detail-event strong{font-size:13px;color:var(--text)}.calendar-detail-event small{font-size:11px;color:var(--text-soft)}
+.calendar-empty{text-align:center;padding:23px 8px}.calendar-empty svg{width:32px;height:32px;color:var(--green-mid);margin-bottom:12px}.calendar-empty strong{display:block;color:var(--text);font-size:13px}.calendar-empty p,.calendar-empty-note{font-size:11px;color:var(--text-soft);line-height:1.6;margin-top:9px}
+.calendar-upcoming>p{font-size:11px;color:var(--text-soft);margin:-7px 0 12px}.upcoming-item{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:13px 0;width:100%;cursor:pointer;color:var(--text)}.upcoming-item:hover{color:var(--green-mid)}.upcoming-date{font-size:10px;color:var(--green-mid);font-weight:800}.upcoming-item strong{font-size:12px}.upcoming-item small{font-size:10px;color:var(--text-soft)}
+.calendar-preview{display:flex;align-items:center;gap:18px;padding:22px;margin:0 0 21px;background:var(--surface)}.calendar-preview-icon{height:60px;width:60px;border-radius:15px;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center;flex:none}.calendar-preview-icon svg{height:28px;width:28px}.calendar-preview-content{flex:1}.calendar-preview-content h2{font-size:19px;color:var(--text);margin:4px 0 6px}.calendar-preview-content p:not(.eyebrow){font-size:11px;color:var(--text-soft)}.calendar-preview .button{flex:none}.preview-due{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.preview-due span{font-size:10px;color:var(--green-deep);padding:5px 8px;border-radius:7px;background:var(--green-soft)}
+[data-theme="dark"] .calendar-event-label{background:#184b36;color:#c6f4d9}
+@media(max-width:1130px){.calendar-layout{grid-template-columns:1fr}.calendar-aside{grid-template-columns:1fr 1fr}.calendar-date{min-height:84px}}
+@media(max-width:650px){.auth-join-actions,.calendar-aside{grid-template-columns:1fr}.calendar-hero{padding:24px}.calendar-hero-art{display:none}.calendar-panel{padding:12px}.calendar-toolbar{margin:8px 4px 16px}.calendar-controls{width:100%}.calendar-switch{margin-left:auto}.calendar-date{min-height:66px;padding:6px 3px}.calendar-day-number{font-size:11px;width:22px;height:22px}.calendar-event-label{font-size:8px;padding:3px}.calendar-event-label:nth-of-type(n+3){display:none}.calendar-weekdays span{font-size:9px}.calendar-preview{flex-wrap:wrap;padding:17px}.calendar-preview .button{width:100%}.calendar-summary>div{padding:13px}.calendar-summary strong{font-size:20px}.calendar-summary span{font-size:9px}}
+
+/* v1.7 -- Student Calendar is the Date Needed picker; request form uses this selection. */
+.calendar-pickup{padding:23px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.calendar-pickup-symbol{width:42px;height:42px;border-radius:12px;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center;margin-bottom:4px}
+.calendar-pickup-symbol svg{width:22px;height:22px}
+.calendar-pickup h2{font-size:22px;font-weight:800;letter-spacing:-.45px;color:var(--text);line-height:1.2}
+.calendar-pickup p:not(.eyebrow){font-size:12px;line-height:1.6;color:var(--text-soft);margin-bottom:6px}
+.calendar-pickup .button{min-height:46px}
+.calendar-pickup .button:disabled{opacity:.48;cursor:not-allowed}
+.calendar-picked-hint{font-size:10px;color:var(--green-mid);font-weight:800}
+.calendar-request-field{display:flex;flex-direction:column;gap:8px}
+.calendar-request-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.calendar-request-date{display:flex;align-items:center;gap:12px;flex:1;min-width:220px;border-radius:11px;padding:12px 15px;border:1px dashed var(--line);background:var(--input)}
+.calendar-request-date.has-date{border:1px solid var(--green-mid);background:var(--green-soft)}
+.calendar-request-date-icon{background:var(--surface);height:40px;width:40px;border-radius:10px;display:grid;place-items:center;color:var(--green-deep);flex-shrink:0}
+.calendar-request-date-icon svg{height:19px;width:19px}
+.calendar-request-date small{display:block;margin-bottom:4px;font-size:9px;letter-spacing:.7px;font-weight:800;color:var(--text-soft)}
+.calendar-request-date strong{font-size:12px;color:var(--text);font-weight:800}
+.calendar-request-row>.button{min-height:60px;white-space:nowrap}
+.calendar-request-field>small{font-size:10px;line-height:1.6;color:var(--text-soft)}
+@media(max-width:690px){.calendar-request-row>.button{width:100%;min-height:43px}.calendar-request-date{min-width:0}.calendar-pickup{padding:19px}}
+
+/* v1.8 — Date Needed calendar belongs in the request form (Student AND Alumni). */
+.needed-date-field{display:flex;flex-direction:column;gap:10px;min-width:0}
+.needed-date-box{display:flex;align-items:center;gap:16px;border:1px solid #89cba555;border-radius:16px;background:linear-gradient(112deg,var(--green-tint),var(--surface));padding:16px;min-width:0}
+.needed-calendar-symbol{display:grid;place-items:center;width:53px;height:53px;flex:none;border-radius:13px;background:var(--green-soft);color:var(--green-deep)}
+.needed-calendar-symbol svg{height:26px;width:26px}
+.needed-date-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.needed-date-copy small{font-size:9.5px;letter-spacing:.9px;font-weight:850;color:var(--green-mid)}
+.needed-date-copy strong{font-size:16px;letter-spacing:-.35px;color:var(--text)}
+.needed-date-copy span{font-size:11px;line-height:1.5;color:var(--text-soft)}
+.needed-date-field>small{line-height:1.6;color:var(--text-soft)}
+.needed-calendar{border-radius:18px;padding:23px 25px;background:var(--surface);border:1px solid var(--line);box-shadow:0 15px 35px #0d482314;animation:needed-pop .2s ease-out;max-width:650px}
+@keyframes needed-pop{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.needed-calendar-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:15px;margin-bottom:19px}
+.needed-calendar-head .eyebrow{font-size:9px;margin:0 0 5px;color:var(--green-mid)}
+.needed-calendar-head h3{font-size:23px;font-weight:850;letter-spacing:-.6px;color:var(--text);margin:0}
+.needed-calendar-controls{display:flex;gap:6px}
+.needed-calendar-controls button{border:1px solid var(--line);background:var(--input);color:var(--text);border-radius:9px;min-width:35px;height:35px;padding:0 11px;font-size:20px;line-height:1;display:grid;place-items:center}
+.needed-calendar-controls button:hover{border-color:var(--green-mid);background:var(--green-soft)}
+.needed-calendar-controls .needed-calendar-today{font-size:11px;min-width:50px;font-weight:800}
+.needed-weekdays,.needed-day-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.needed-weekdays{padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:9px}
+.needed-weekdays span{text-align:center;font-size:11px;color:var(--muted);font-weight:800;padding:7px 0}
+.needed-day{display:grid;place-items:center;aspect-ratio:1/1;min-height:40px;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--text);font-size:12px;font-weight:730;transition:background .13s,color .13s,border-color .13s}
+.needed-day:hover:not(:disabled){background:var(--green-soft);border-color:#248b5355}
+.needed-day.outside{color:var(--muted)}
+.needed-day.is-today{border-color:var(--green-mid);color:var(--green-deep)}
+.needed-day.is-selected,.needed-day.is-selected:hover{background:#186b42;color:#fff;border-color:#186b42;box-shadow:0 5px 13px #186b422a}
+.needed-day:disabled{opacity:.27;cursor:not-allowed}
+.needed-calendar-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:16px;padding-top:17px}
+.needed-calendar-footer>div{display:flex;flex-direction:column;gap:4px;flex:1}
+.needed-calendar-footer span{letter-spacing:1px;font-size:9px;color:var(--green-mid);font-weight:850}
+.needed-calendar-footer strong{font-size:16px;color:var(--text)}
+.needed-calendar-footer small{font-size:10px;color:var(--text-soft);line-height:1.5}
+@media(max-width:700px){.needed-date-box{flex-wrap:wrap;gap:10px}.needed-date-copy{flex:1 1 calc(100% - 75px)}.needed-date-box .button{flex:1 1 100%}.needed-calendar{padding:15px 12px}.needed-calendar-head h3{font-size:20px}.needed-day{min-height:34px;border-radius:8px}.needed-day-grid{gap:2px}.needed-calendar-footer .button{width:100%}}

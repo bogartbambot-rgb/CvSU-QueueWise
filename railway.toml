@@ -1,0 +1,6 @@
+# Railway autodetection safety net: use this command even if the service has no manual Start Command.
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "python run.py"

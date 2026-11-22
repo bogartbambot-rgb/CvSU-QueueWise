@@ -94,7 +94,7 @@ def test_public_submit_track_and_staff_process(client):
     processed=client.post('/api/admin/process-next',headers=headers(client))
     assert processed.status_code==200, processed.text
     assert processed.json()['request_id']=='REQ-0001'
-    assert client.get('/api/track/REQ-0001').json()['request']['status']=='Processed'
+    assert client.get('/api/track/REQ-0001').json()['request']['status']=='Awaiting Approval'  # Processing is not permission to release
     after=client.get('/api/admin/requests').json()
     assert after['stats']['pending']==0 and after['stats']['processed']==1
     assert after['arrivals']==['REQ-0001']
@@ -110,9 +110,10 @@ def test_sequential_status_and_invalid_transition(client):
     assert client.patch(route,json={'status':'Processing'},headers=headers(client)).status_code==200
     assert client.get('/api/admin/requests').json()['stats']['pending']==0
     assert client.patch(route,json={'status':'Processing'},headers=headers(client)).status_code==409
-    assert client.patch(route,json={'status':'Ready for Release'},headers=headers(client)).status_code==200
-    assert client.patch(route,json={'status':'Processed'},headers=headers(client)).status_code==200
-    assert len(client.get(f'/api/track/{first}').json()['events'])==4
+    assert client.patch(route,json={'status':'Ready for Release'},headers=headers(client)).status_code==409
+    assert client.post(f'/api/admin/requests/{first}/approve',headers=headers(client)).status_code==200
+    assert client.patch(route,json={'status':'Processed'},headers=headers(client)).status_code==409
+    assert len(client.get(f'/api/track/{first}').json()['events'])==3
     assert client.patch(route,json={'status':'Processing'},headers=headers(client)).status_code==409
 
 

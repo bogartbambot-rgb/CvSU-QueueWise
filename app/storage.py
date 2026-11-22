@@ -64,6 +64,11 @@ def init_database(path: str, demo_password: str):
                 requester_name TEXT NOT NULL,
                 document_type TEXT NOT NULL,
                 category TEXT NOT NULL,
+                requester_type TEXT NOT NULL DEFAULT 'Not specified' CHECK(requester_type IN ('Student', 'Alumni', 'Not specified')),
+                claimed_at TEXT,
+                claimed_by TEXT,
+                approved_at TEXT,
+                approved_by TEXT,
                 submission_date TEXT NOT NULL,
                 deadline TEXT NOT NULL,
                 priority_score REAL NOT NULL DEFAULT 0,
@@ -73,6 +78,24 @@ def init_database(path: str, demo_password: str):
                 processed_at TEXT,
                 demo INTEGER NOT NULL DEFAULT 0,
                 CHECK(deadline >= submission_date)
+            );
+            CREATE TABLE IF NOT EXISTS portal_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                account_type TEXT NOT NULL CHECK(account_type IN ('Student','Alumni')),
+                student_number TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                email_verified_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS email_verification_tokens (
+                portal_user_id INTEGER PRIMARY KEY REFERENCES portal_users(id) ON DELETE CASCADE,
+                token_hash TEXT NOT NULL UNIQUE,
+                expires_at TEXT NOT NULL,
+                last_sent_at TEXT NOT NULL,
+                sent_count INTEGER NOT NULL DEFAULT 1,
+                window_started_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
             CREATE INDEX IF NOT EXISTS idx_requests_created ON requests(created_at);
@@ -93,6 +116,43 @@ def init_database(path: str, demo_password: str):
                 is_read INTEGER NOT NULL DEFAULT 0
             );
         ''')
+        # Non-destructive migration for older Railway/local SQLite databases.
+        # Keep the four original status values intact. Pickup is recorded in
+        # claimed_at/claimed_by, avoiding a destructive requests-table rebuild.
+        columns = {row['name'] for row in db.execute('PRAGMA table_info(requests)')}
+        if 'requester_type' not in columns:
+            db.execute("ALTER TABLE requests ADD COLUMN requester_type TEXT NOT NULL DEFAULT 'Not specified' CHECK(requester_type IN ('Student','Alumni','Not specified'))")
+        if 'claimed_at' not in columns:
+            db.execute('ALTER TABLE requests ADD COLUMN claimed_at TEXT')
+        if 'claimed_by' not in columns:
+            db.execute('ALTER TABLE requests ADD COLUMN claimed_by TEXT')
+        # Release approval must be explicit. Older Ready-for-Release rows
+        # remain unapproved and cannot be claimed until registrar confirms.
+        if 'approved_at' not in columns:
+            db.execute('ALTER TABLE requests ADD COLUMN approved_at TEXT')
+        if 'approved_by' not in columns:
+            db.execute('ALTER TABLE requests ADD COLUMN approved_by TEXT')
+        if 'student_number' not in columns:
+            db.execute('ALTER TABLE requests ADD COLUMN student_number TEXT')
+        if 'purpose' not in columns:
+            db.execute('ALTER TABLE requests ADD COLUMN purpose TEXT')
+        if 'portal_user_id' not in columns:
+            db.execute('ALTER TABLE requests ADD COLUMN portal_user_id INTEGER REFERENCES portal_users(id)')
+        # Preserve already registered v1.4 accounts (grandfathered as verified).
+        # Newly registered accounts in v1.5 begin unverified.
+        portal_columns = {row['name'] for row in db.execute('PRAGMA table_info(portal_users)')}
+        if 'email_verified_at' not in portal_columns:
+            db.execute('ALTER TABLE portal_users ADD COLUMN email_verified_at TEXT')
+            db.execute('UPDATE portal_users SET email_verified_at=created_at WHERE email_verified_at IS NULL')
+        db.execute('''CREATE TABLE IF NOT EXISTS email_verification_tokens (
+            portal_user_id INTEGER PRIMARY KEY REFERENCES portal_users(id) ON DELETE CASCADE,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            last_sent_at TEXT NOT NULL,
+            sent_count INTEGER NOT NULL DEFAULT 1,
+            window_started_at TEXT NOT NULL
+        )''')
+        db.execute('CREATE INDEX IF NOT EXISTS idx_requests_portal_user ON requests(portal_user_id)')
         existing = db.execute("SELECT id FROM users WHERE username='admin'").fetchone()
         if existing is None:
             db.execute('BEGIN IMMEDIATE')
@@ -133,18 +193,22 @@ def add_event(db, request_pk: int, status: str, message: str):
 
 
 def insert_request(db, *, name: str, document_type: str, category: str, deadline: str,
-                   submission_date: str, demo: bool = False) -> dict:
+                   submission_date: str, requester_type: str = 'Not specified', demo: bool = False,
+                   student_number: str | None = None, purpose: str | None = None,
+                   portal_user_id: int | None = None) -> dict:
     from .algorithms import calculate_score
     from datetime import date
+    if requester_type not in ('Student', 'Alumni', 'Not specified'):
+        raise ValueError('Invalid requester type')
     timestamp = now().isoformat()
     preview = {'submission_date': submission_date, 'deadline': deadline, 'category': category}
     score = calculate_score(preview, date.fromisoformat(submission_date))
     cursor = db.execute('''
-        INSERT INTO requests (requester_name,document_type,category,submission_date,
-                              deadline,priority_score,created_at,updated_at,demo)
-        VALUES (?,?,?,?,?,?,?,?,?)
-    ''', (name, document_type, category, submission_date, deadline, score,
-          timestamp, timestamp, int(demo)))
+        INSERT INTO requests (requester_name,document_type,category,requester_type,submission_date,
+                              deadline,priority_score,created_at,updated_at,demo,student_number,purpose,portal_user_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ''', (name, document_type, category, requester_type, submission_date, deadline, score,
+          timestamp, timestamp, int(demo),student_number,purpose,portal_user_id))
     pk = cursor.lastrowid
     public_id = f'REQ-{pk:04d}'
     db.execute('UPDATE requests SET public_id=? WHERE id=?', (public_id, pk))

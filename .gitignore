@@ -7,3 +7,9 @@ instance/
 *.db-shm
 *.db-wal
 .env
+*.sqlite
+*.sqlite3
+*.log
+.session_secret
+.env.*
+!.env.example
