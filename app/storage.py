@@ -82,6 +82,9 @@ def init_database(path: str, demo_password: str):
             CREATE TABLE IF NOT EXISTS portal_users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 full_name TEXT NOT NULL,
+                first_name TEXT,
+                middle_name TEXT,
+                last_name TEXT,
                 account_type TEXT NOT NULL CHECK(account_type IN ('Student','Alumni')),
                 student_number TEXT NOT NULL UNIQUE COLLATE NOCASE,
                 email TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -144,6 +147,11 @@ def init_database(path: str, demo_password: str):
         if 'email_verified_at' not in portal_columns:
             db.execute('ALTER TABLE portal_users ADD COLUMN email_verified_at TEXT')
             db.execute('UPDATE portal_users SET email_verified_at=created_at WHERE email_verified_at IS NULL')
+        # Non-destructive registration name migration. Keep full_name and all
+        # existing account IDs, passwords, verified flags, and linked requests.
+        for name_column in ('first_name', 'middle_name', 'last_name'):
+            if name_column not in portal_columns:
+                db.execute(f'ALTER TABLE portal_users ADD COLUMN {name_column} TEXT')
         db.execute('''CREATE TABLE IF NOT EXISTS email_verification_tokens (
             portal_user_id INTEGER PRIMARY KEY REFERENCES portal_users(id) ON DELETE CASCADE,
             token_hash TEXT NOT NULL UNIQUE,

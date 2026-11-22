@@ -29,6 +29,8 @@ LOGGER = logging.getLogger('queuewise')
 ROOT = Path(__file__).resolve().parent
 PUBLIC_ID_RE = re.compile(r'^REQ-\d{4,}$')
 WORD_RE = re.compile(r"^[^\W\d_]+(?:['.\-][^\W\d_]+)*$", flags=re.UNICODE)
+# Supports names like Mary Jane, Dela Cruz, O'Neil, and a middle initial M.
+NAME_PART_WORD_RE = re.compile(r"^[^\W\d_]+(?:[.'’\-][^\W\d_]+)*\.?$", flags=re.UNICODE)
 STUDENT_NUMBER_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9-]{4,23}$')
 EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 TOKEN_RE = re.compile(r'^[A-Za-z0-9_-]{32,128}$')
@@ -63,7 +65,12 @@ class NewRequest(BaseModel):
 
 
 class RegisterPayload(BaseModel):
-    full_name: str = Field(max_length=200)
+    # New registration UI uses separate name fields.  Legacy full_name is
+    # accepted for backwards compatibility with older API clients.
+    first_name: str | None = Field(default=None, max_length=60)
+    middle_name: str | None = Field(default=None, max_length=60)
+    last_name: str | None = Field(default=None, max_length=60)
+    full_name: str | None = Field(default=None, max_length=200)
     account_type: Literal['Student', 'Alumni']
     student_number: str = Field(max_length=40)
     email: str = Field(max_length=254)
@@ -173,14 +180,49 @@ def require_staff(request: Request):
 
 
 def normalize_name(value: str) -> str:
+    """Validate full display name, including optional middle initial or surname particles.
+
+    Name must still have a complete first and last part; a lone last initial
+    is not accepted. Used for legacy API clients and request submissions.
+    """
     name = ' '.join(value.strip().split())
     words = name.split(' ')
-    if not 2 <= len(name) <= 60 or len(words) < 2 or any(
-        len(''.join(ch for ch in word if ch.isalpha())) < 2 or WORD_RE.fullmatch(word) is None
-        for word in words
-    ):
-        fail(400, 'Enter a complete first and last name (2–60 letters/characters; no numbers).')
+    if not (2 <= len(name) <= 200 and len(words) >= 2
+            and all(NAME_PART_WORD_RE.fullmatch(word) for word in words)
+            and sum(ch.isalpha() for ch in words[0]) >= 2
+            and sum(ch.isalpha() for ch in words[-1]) >= 2):
+        fail(400, 'Enter a complete first and last name using letters (middle initials are allowed).')
     return name
+
+
+def validated_name_part(value: str | None, label: str, *, required: bool = False) -> str | None:
+    """Validate a single registration name component, preserving user casing."""
+    text = ' '.join((value or '').split())
+    if not text:
+        if required:
+            fail(400, f'{label} is required.')
+        return None
+    if len(text) > 60 or not all(NAME_PART_WORD_RE.fullmatch(word) for word in text.split()):
+        fail(400, f'{label} must contain valid letters only (hyphens, apostrophes, and periods are allowed).')
+    letter_count = sum(character.isalpha() for character in text)
+    if letter_count < (2 if required else 1):
+        fail(400, f'{label} must contain at least {2 if required else 1} letter(s).')
+    return text
+
+
+def normalize_registration_name(payload: RegisterPayload) -> tuple[str, str | None, str | None, str | None]:
+    """Assemble name without making middle name mandatory; preserve legacy API."""
+    if any(value is not None for value in (payload.first_name, payload.middle_name, payload.last_name)):
+        first = validated_name_part(payload.first_name, 'First name', required=True)
+        middle = validated_name_part(payload.middle_name, 'Middle name')
+        last = validated_name_part(payload.last_name, 'Last name', required=True)
+        full = ' '.join(part for part in (first, middle, last) if part)
+        if len(full) > 200:
+            fail(400, 'The complete name is too long.')
+        return full, first, middle, last
+    if payload.full_name is not None:
+        return normalize_name(payload.full_name), None, None, None
+    fail(400, 'First name and last name are required.')
 
 
 def validate_new_request(item: NewRequest):
@@ -379,7 +421,7 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
         # Never silently create an account that cannot receive an activation email.
         if not sender_configured(testing):
             fail(503, 'Email verification is not configured. Ask the administrator to set Gmail API credentials and the public URL in Railway.')
-        name = normalize_name(payload.full_name)
+        name, first_name, middle_name, last_name = normalize_registration_name(payload)
         number = validated_student_number(payload.student_number)
         email = validated_email(payload.email)
         validated_password(payload.password)
@@ -395,9 +437,9 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                               (email, number)).fetchone():
                     fail(409, 'This email or student number is already registered. Please sign in or request a verification email.')
                 cursor = db.execute("""INSERT INTO portal_users
-                    (full_name,account_type,student_number,email,password_hash,created_at,email_verified_at)
-                    VALUES (?,?,?,?,?,?,NULL)""",
-                    (name,payload.account_type,number,email,hash_password(payload.password),now().isoformat()))
+                    (full_name,first_name,middle_name,last_name,account_type,student_number,email,password_hash,created_at,email_verified_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,NULL)""",
+                    (name,first_name,middle_name,last_name,payload.account_type,number,email,hash_password(payload.password),now().isoformat()))
                 user_id = cursor.lastrowid
                 db.execute("""INSERT INTO email_verification_tokens
                     (portal_user_id,token_hash,expires_at,last_sent_at,sent_count,window_started_at)

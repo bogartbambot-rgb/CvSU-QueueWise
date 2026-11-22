@@ -260,7 +260,12 @@ function registerPage() {
     <form id="registerForm" class="qw-register-form">
       <input type="hidden" id="registerType" name="account_type" value="${role}">
       <div class="qw-form-section"><div class="qw-section-heading"><span>${icon('user')}</span><div><h2>Account details</h2><p>Enter your personal and academic information.</p></div></div>
-        <label class="form-label">Full name <span class="required">*</span><input name="full_name" autocomplete="name" minlength="2" maxlength="60" placeholder="e.g. Juan Dela Cruz" required></label>
+        <div class="qw-name-grid">
+          <label class="form-label">First name <span class="required">*</span><input name="first_name" autocomplete="given-name" minlength="2" maxlength="60" placeholder="e.g. John Gabriel" required></label>
+          <label class="form-label">Middle name <span class="qw-optional">(Optional)</span><input name="middle_name" autocomplete="additional-name" maxlength="60" placeholder="e.g. M. or Maria"></label>
+          <label class="form-label">Last name <span class="required">*</span><input name="last_name" autocomplete="family-name" minlength="2" maxlength="60" placeholder="e.g. Dela Cruz" required></label>
+        </div>
+        <p class="qw-name-help">Enter your name as written on your records. Middle name or initial is optional.</p>
         <div class="qw-form-two"><label class="form-label"><span><span id="registrationNumberCaption">${alumni?'Former student number':'Student number'}</span> <span class="required">*</span></span><input name="student_number" minlength="5" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9-]{4,23}" placeholder="${alumni?'e.g. 2018-12345':'e.g. 2026-12345'}" required></label>
         <label class="form-label">Email address <span class="required">*</span><input type="email" name="email" maxlength="254" autocomplete="email" placeholder="you@example.com" required></label></div>
       </div>
@@ -756,8 +761,17 @@ document.addEventListener('submit',async event=>{
   if(form.id==='requestForm'){event.preventDefault();await submitRequest(form);return;}
   if(form.dataset.form==='track'){event.preventDefault();try{await track(new FormData(form).get('request_id')||'');}catch(error){toast(error.message,true);}return;}
   if(form.id==='registerForm'){
-    event.preventDefault();const submit=$('#registerSubmit');submit.disabled=true;
-    try {const response=await api('/api/auth/register',{method:'POST',body:Object.fromEntries(new FormData(form))});state.verificationEmail=response.user.email;state.registerRole=response.user.role;toast('Check your inbox for the verification link.');navigate('verify-email');}
+    event.preventDefault();
+    const nameData=new FormData(form);
+    const first=String(nameData.get('first_name')||'').trim();
+    const last=String(nameData.get('last_name')||'').trim();
+    const nameError=$('#registerError');
+    if(!first||!last){
+      if(nameError){nameError.textContent='First name and last name are required. Middle name is optional.';nameError.classList.remove('hidden');}
+      toast('Please enter your first and last name.',true);return;
+    }
+    const submit=$('#registerSubmit');submit.disabled=true;
+    try {const response=await api('/api/auth/register',{method:'POST',body:Object.fromEntries(nameData)});state.verificationEmail=response.user.email;state.registerRole=response.user.role;toast('Check your inbox for the verification link.');navigate('verify-email');}
     catch(error){const note=$('#registerError');if(note){note.textContent=error.message;note.classList.remove('hidden');}toast(error.message,true);}finally{submit.disabled=false;}return;
   }
   if(form.id==='verifyEmailForm'){

@@ -61,3 +61,15 @@ These complexities refer to the **ADT operations**, not the full HTTP request, w
 4. Verify the password visibility control, required checkbox consent, Privacy Notice popup and light/dark mode.
 5. Sign in using an authorized test account to verify protected dashboards, requests, multi-document submission and admin approval.
 6. Check PWA install and both desktop/mobile layouts. Gmail API email delivery must be tested separately with configured Railway credentials.
+
+
+## v1.12.3: Registration name field regression
+
+- Register as Student and Alumni with separate `first_name`, optional `middle_name`, and `last_name`.
+- Check `Mary Jane / A. / Dela Cruz` and `Ana-Maria / (blank) / O'Neil`.
+- Reject empty required fields, digits, punctuation-only names, and markup.
+- Validate that older `full_name` API payloads and previously stored SQLite users still work.
+- Ensure full names containing a middle initial are accepted when submitting requests.
+- Confirm PWA shows the new form after a cache refresh.
+
+Automated: `python -m pytest -q` — 81 passed in build environment.

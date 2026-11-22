@@ -1,3 +1,11 @@
+# QueueWise v1.12.3 — Registration Name Fields Update
+
+The Student and Alumni **Register** page now has separate **First name**, **Middle name (optional)**, and **Last name** fields. The backend validates each component, supports common middle initials and multi-part names, and assembles a compatible full display name. Existing accounts and SQLite requests are preserved by a non-destructive migration. The PWA cache version has also been updated.
+
+**Update instructions:** [UPGRADE_TO_V1_12_3.md](UPGRADE_TO_V1_12_3.md) · **81/81 automated tests passed.** Live email delivery and Railway deployment still require your own verification.
+
+---
+
 # QueueWise v1.12 — All-in-One Full-Stack PWA
 
 This ZIP includes the entire previous v1.11 QueueWise project **plus** a brand-new public landing page, a real login popup over that page, a separate Student/Alumni registration page, and the custom QueueWise logo and PWA icons.
