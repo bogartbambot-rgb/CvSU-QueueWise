@@ -25,7 +25,7 @@ def test_dashboard_cards_are_routed_and_pwa_cache_is_refreshed(tmp_path):
 
 
 def test_dashboard_detail_pages_scope_data_to_authenticated_account():
-    js=Path(__file__).resolve().parents[1].joinpath('app/static/js/app.js').read_text()
+    js=Path(__file__).resolve().parents[1].joinpath('app/static/js/app.js').read_text(encoding='utf-8')
     assert 'const rows=own?(state.myRequests||[]):(state.publicTracked||[]);' in js
     assert "api('/api/my/requests')" in js
     assert 'Sign in for private Student/Alumni requests' in js

@@ -73,3 +73,11 @@ These complexities refer to the **ADT operations**, not the full HTTP request, w
 - Confirm PWA shows the new form after a cache refresh.
 
 Automated: `python -m pytest -q` — 81 passed in build environment.
+
+## Pickup closing-time checks (v1.12.5)
+
+- After registrar approval, try first pickup at 5:00 PM or 6:00 PM: expect HTTP 400; 4:30 PM on a valid future date is accepted.
+- On the collection date, an approved unclaimed document should **not** become Missed Pickup at 4:59:59 PM, and **should** become Missed Pickup at 5:00:00 PM Manila time. The transition is detected during a portal/API read, not by a background clock task.
+- Student/Alumni should see the 5 PM note in My Requests and event notifications. Admin should see the same note in Review / Schedule.
+- After missed pickup, request rescheduling. Try new 5 PM schedule (reject) and 4:30 PM schedule (accept); verify original reference ID and rescheduling history are retained.
+- Automated: `python -m pytest tests/test_pickup_before_5pm_v1125.py -v`; all tests: `python -m pytest -q`.

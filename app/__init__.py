@@ -1,7 +1,7 @@
 """QueueWise API, PWA delivery, and staff-only registrar operations."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, datetime, timezone
+from datetime import date, datetime, timedelta, time, timezone
 import hmac
 import hashlib
 import logging
@@ -37,6 +37,13 @@ TOKEN_RE = re.compile(r'^[A-Za-z0-9_-]{32,128}$')
 VERIFY_TTL = timedelta(hours=24)
 RESEND_COOLDOWN = timedelta(seconds=60)
 MAX_SENDS_PER_DAY = 5
+# Registrar collection window ends at 5:00 PM, Asia/Manila. New appointments
+# must be strictly before the closing hour, including rescheduled pickups.
+PICKUP_CLOSING_HOUR = 17
+PICKUP_REMINDER = (
+    "Please collect your document(s) before 5:00 PM on the scheduled date. "
+    "The Registrar's Office closes at 5:00 PM."
+)
 ALLOWED_TRANSITIONS = {
     'Pending': {'Processing', 'Processed'},
     'Processing': {'Processed'},
@@ -253,11 +260,12 @@ def ensure_id(value: str):
     return value
 
 
-def missed_pickup(record: dict, *, today: date | None = None) -> bool:
-    """A missed appointment starts *after the whole Manila calendar day* ends.
+def missed_pickup(record: dict, *, today: date | None = None, as_of: datetime | None = None) -> bool:
+    """An uncollected approved pickup becomes missed at 5 PM on its scheduled date.
 
-    An appointment at 9 AM is not marked missed at 9:01 AM; staff can still
-    hand over documents later that day. Real pickup requires staff confirmation.
+    The appointment's selected hour is not an automatic no-show deadline:
+    staff may still confirm handover up to, but not including, 5 PM Manila time.
+    `as_of` allows exact 4:59 PM / 5:00 PM boundary testing without real waits.
     """
     if not (record.get('pickup_at') and record.get('approved_at')) or (
         record.get('claimed_at') or record.get('cancelled_at') or record.get('declined_at')
@@ -266,7 +274,12 @@ def missed_pickup(record: dict, *, today: date | None = None) -> bool:
     try:
         scheduled = datetime.fromisoformat(record['pickup_at'])
         scheduled = scheduled.replace(tzinfo=MANILA) if scheduled.tzinfo is None else scheduled.astimezone(MANILA)
-        return scheduled.date() < (today or now().date())
+        # `today` is retained for old callers that use date-only simulation.
+        effective_now = as_of or (datetime.combine(today, time.max, tzinfo=MANILA) if today else now())
+        effective_now = (effective_now.replace(tzinfo=MANILA) if effective_now.tzinfo is None
+                         else effective_now.astimezone(MANILA))
+        closing_time = datetime.combine(scheduled.date(), time(PICKUP_CLOSING_HOUR), tzinfo=MANILA)
+        return effective_now >= closing_time
     except (TypeError, ValueError):
         return False
 
@@ -290,9 +303,9 @@ def sync_missed_pickups(db) -> None:
             (timestamp,timestamp,record['id']))
         if changed.rowcount:
             add_event(db,record['id'],'Missed Pickup',
-                      'The scheduled collection day ended without a confirmed document handover. Request a new pickup schedule.')
+                      'The Registrar closed at 5:00 PM without a confirmed document handover. Request a new pickup schedule.')
             add_notification(db,'Missed pickup',
-                             f'{record["public_id"]} was not claimed on the scheduled date. Arrange a new pickup schedule.',
+                             f'{record["public_id"]} was not claimed before the 5:00 PM closing time. Arrange a new pickup schedule.',
                              record['public_id'])
 
 
@@ -733,7 +746,7 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                 'Claimed': 'Collection confirmed.',
                 'Declined': 'Request declined. Sign in for the explanation.',
                 'Cancelled': 'Request cancelled.',
-                'Missed Pickup': 'The document was not collected on its scheduled day. Sign in to request rescheduling.',
+                'Missed Pickup': 'The document was not collected by the 5:00 PM closing time. Sign in to request rescheduling.',
                 'Reschedule Requested': 'A new collection schedule has been requested.',
                 'Pickup Rescheduled': 'The registrar assigned a new pickup date.',
             }
@@ -929,6 +942,8 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
             fail(400, 'Choose a valid pickup date and time.')
         if appointment < now() or appointment > now() + timedelta(days=365):
             fail(400, 'Pickup must be in the future and within 365 days.')
+        if appointment.hour >= PICKUP_CLOSING_HOUR:
+            fail(400, 'Pickup appointments must be scheduled before 5:00 PM (Philippine time). The Registrar closes at 5:00 PM.')
         note = ' '.join((payload.note or '').split())
         timestamp = now().isoformat()
         with connect(database) as db:
@@ -958,18 +973,18 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                     prior = record['pickup_at']
                     add_event(db,record['id'],'Pickup Rescheduled',
                               f'Registrar moved the pickup from {prior} to {readable}.' +
-                              (f' Requester reason: {record["reschedule_reason"]}.' if record['reschedule_reason'] else ''))
-                    add_notification(db,'Pickup rescheduled',f'{public_id} has a new pickup date: {readable}.',public_id)
+                              (f' Requester reason: {record["reschedule_reason"]}.' if record['reschedule_reason'] else '') + f' {PICKUP_REMINDER}')
+                    add_notification(db,'Pickup rescheduled',f'{public_id} has a new pickup date: {readable}. {PICKUP_REMINDER}',public_id)
                 else:
                     add_event(db, record['id'], 'Ready for Release',
-                              f'Registrar scheduled document collection for {readable}.' + (f' Instructions: {note}' if note else ''))
+                              f'Registrar scheduled document collection for {readable}. {PICKUP_REMINDER}' + (f' Instructions: {note}' if note else ''))
                     add_notification(db, 'Pickup scheduled',
-                                     f'{public_id} is ready for release on {readable}.',public_id)
+                                     f'{public_id} is ready for release on {readable}. {PICKUP_REMINDER}',public_id)
                 db.execute('COMMIT')
             except Exception:
                 db.execute('ROLLBACK')
                 raise
-        return {'message': f'Pickup for {public_id} {"rescheduled" if rescheduling else "scheduled"} on {readable}.',
+        return {'message': f'Pickup for {public_id} {"rescheduled" if rescheduling else "scheduled"} on {readable}. {PICKUP_REMINDER}',
                 'pickup_at': appointment.isoformat()}
 
     @app.post('/api/admin/requests/{public_id}/approve', dependencies=[Depends(require_csrf)])

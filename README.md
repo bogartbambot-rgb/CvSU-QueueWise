@@ -70,3 +70,7 @@ New nullable columns and the document-items table are created automatically when
 
 ## Missed pickup & rescheduling (v1.12.4)
 When a scheduled pickup day ends without an actual registrar-confirmed handover, QueueWise marks it **Missed Pickup** on the next relevant portal/admin visit and records an in-app notification. Registered Student/Alumni users can request a new date with a reason; the registrar schedules the new appointment. The original request ID and audit events remain unchanged. See `UPGRADE_TO_V1_12_4.md`.
+
+## Registrar pickup closing time (v1.12.5)
+
+For **both original pickup schedules and rescheduled pickups**, the registrar must assign a valid time **before 5:00 PM (Asia/Manila)**. Scheduling at or after 5:00 PM is rejected by both the UI and the Python API. Students and alumni see the reminder in their My Requests collection details and in-app event notifications. If a scheduled request has not been confirmed collected by **5:00 PM on its pickup date**, the system reports **Missed Pickup** when the next portal or staff read reconciles the status; the requester can provide a reason and request another date. The registrar schedules the replacement appointment, also before 5:00 PM. These are in-app updates, not automatic Gmail or push reminders. Existing SQLite records are preserved. See `UPGRADE_TO_V1_12_5.md` for detailed install/test steps.
