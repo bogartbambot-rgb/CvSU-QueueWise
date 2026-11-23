@@ -9,7 +9,7 @@ const setStored = (key, value) => { try { localStorage.setItem(key, JSON.stringi
 const state = {
   csrf: '', user: null, today: '', documents: [], categories: [],
   view: 'dashboard', adminData: null, notifications: [], publicTracked: [], myRequests: [], authTab: 'Student', registerRole: 'Student', verificationEmail: '',
-  staffTab: 'all', search: '', filter: 'All', requesterFilter: 'All', claimSearch: '', reviewId: null, cancelId: null, lastSuccessId: null, trackedResult: null,
+  staffTab: 'all', search: '', filter: 'All', requesterFilter: 'All', claimSearch: '', reviewId: null, cancelId: null, rescheduleId: null, lastSuccessId: null, trackedResult: null,
   calendarAnchor: null, selectedCalendarDay: null, pickerOpen: false, requestMode: 'mine', requestDate: '', requestDraft: null,
   helpTab: 'student', installPrompt: null, isInstalled: false, busy: false, renderToken: 0
 };
@@ -79,11 +79,12 @@ const isRequester = () => ['Student','Alumni'].includes(state.user?.role);
 const isAlumni = () => state.user?.role === 'Alumni';
 const detailViews = ['tracked','active','completed','portal','ready'];
 const isDetailView = view => detailViews.includes(view);
-const effectiveStatus = r => r?.cancelled_at ? 'Cancelled' : r?.declined_at ? 'Declined' : r?.claimed_at ? 'Claimed' : (r?.pickup_at && r?.approved_at && new Date(r.pickup_at)>new Date() ? 'Pickup Scheduled' : (r?.status==='Processed' && !r?.approved_at || r?.status==='Ready for Release' && !r?.approved_at ? 'Awaiting Approval' : r.status));
+const effectiveStatus = r => r?.cancelled_at ? 'Cancelled' : r?.declined_at ? 'Declined' : r?.claimed_at ? 'Claimed' : r?.reschedule_requested_at ? 'Reschedule Requested' : r?.missed_at ? 'Missed Pickup' : (r?.pickup_at && r?.approved_at && new Date(r.pickup_at)>new Date() ? 'Pickup Scheduled' : (r?.status==='Processed' && !r?.approved_at || r?.status==='Ready for Release' && !r?.approved_at ? 'Awaiting Approval' : r.status));
 const requesterLabel = r => r.requester_type || 'Not specified';
 const documentList = r => Array.isArray(r.documents)&&r.documents.length ? r.documents : [r.document_type].filter(Boolean);
 const documentsMarkup = r => documentList(r).map((doc,i)=>`<span class="doc-chip">${escapeHtml(doc)}</span>`).join('');
 const canCancel = r => !r.cancelled_at && !r.declined_at && !r.claimed_at && !r.approved_at && !r.pickup_at;
+const canRequestReschedule = r => isRequester() && r?.approved_at && r?.pickup_at && !r?.reschedule_requested_at && !r?.claimed_at && !r?.cancelled_at && !r?.declined_at;
 
 function trackedIds() { return getStored('queuewise_tracked_ids',[]).filter(id=>/^REQ-\d{4,}$/.test(id)).slice(0,12); }
 function saveTracked(id) { setStored('queuewise_tracked_ids', [id, ...trackedIds().filter(x=>x!==id)].slice(0,12)); }
@@ -328,6 +329,7 @@ function adminDashboard() {
   const recent=data.requests.slice(0,8);
   return hero({staff:true})+`<section class="admin-welcome"><div><span class="eyebrow">REGISTRAR REQUEST MONITORING</span><h2>Student and alumni transactions</h2><p>Review incoming document requests, prepare releases, and confirm collection. A processed document still needs registrar approval before collection.</p></div><div class="admin-welcome-actions">${button(`${icon('document')} View requests`,'go-requests','outline')}${button(`${icon('check')} Claimed / Released`,'go-claimed','primary')}</div></section>
     <section class="stat-grid admin-stat-grid">${stat('Student Requests',stats.students,'Submitted by students','user')}${stat('Alumni Requests',stats.alumni,'Submitted by alumni','user')}${stat('Pending Queue',stats.pending,'Waiting for processing','clock')}${stat('Approved for Pickup',stats.ready_to_claim,'Awaiting physical collection','document')}${stat('Claimed / Released',stats.claimed,'Confirmed handovers','check')}${stat('All Requests',stats.total,'Including legacy records','layers')}</section>
+    ${(stats.missed_pickup||stats.reschedule_requested)?`<div class="pickup-warning" role="status"><span>${icon('calendar')} <strong>Pickup follow-ups:</strong> ${stats.missed_pickup||0} missed appointment(s) · ${stats.reschedule_requested||0} reschedule request(s)</span>${button('Review missed pickups','view-missed','outline sm')}${button('Review reschedule requests','view-reschedules','outline sm')}</div>`:''}
     <div class="section-grid"><section class="panel"><div class="panel-header"><div><h2>Recent student & alumni requests</h2><p>Latest submissions, requester type and current status</p></div><button class="text-button" data-action="go-requests">View all ${icon('arrow')}</button></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Request ID</th><th>Requester / Document</th><th>Type</th><th>Status</th></tr></thead><tbody>${recent.map(r=>`<tr><td class="main-cell">${escapeHtml(r.public_id)}</td><td class="main-cell">${escapeHtml(r.requester_name)}<span class="sub-cell">${escapeHtml(r.document_type)}</span></td><td><span class="requester-pill">${escapeHtml(requesterLabel(r))}</span></td><td>${statusBadge(effectiveStatus(r))}</td></tr>`).join('')||`<tr><td colspan="4">${empty('No requests yet','Student and alumni submissions will appear here once received.')}</td></tr>`}</tbody></table></div></section>
       <section class="panel pad"><div class="panel-header" style="padding:0 0 20px"><div><h2>Next request in queue</h2><p>Automatically selected by priority score</p></div>${icon('layers')}</div><div class="quick-next"><small>NEXT DOCUMENT REQUEST</small><strong>${escapeHtml(data.next_id||'Queue is clear')}</strong><div class="next-details"><span>${stats.pending} pending</span><span>Auto-ranked by score</span></div>${button(`${icon('check')} Process next request`,'process-next','primary',stats.pending?'':'disabled')}</div><h3 class="subheading">Ready for collection</h3><p class="panel-subtitle">${stats.ready_to_claim} document(s) are ready for the student or alumni to pick up.</p>${button('Manage requests','go-requests','outline')}</section></div>
     <div class="panel pad"><div class="panel-header" style="padding:0 0 18px"><div><h2>Data structure monitoring</h2><p>FIFO arrival log, priority min-heap and separate-chaining hash lookup</p></div><span class="badge status-info">Live demonstration</span></div><div class="adt-row"><div class="adt-card"><span>${icon('list')}</span><div><strong>FIFO Arrival Queue</strong><p>${stats.total} request IDs retained in arrival order</p></div></div><div class="adt-card"><span>${icon('layers')}</span><div><strong>Binary Min-Heap</strong><p>${stats.heap_entries} pending • ${stats.heap_valid?'Valid heap':'Needs attention'}</p></div></div><div class="adt-card"><span>${icon('search')}</span><div><strong>Chained Hash Table</strong><p>${stats.hash_entries} records • ${stats.hash_buckets} buckets</p></div></div></div></div>`;
@@ -337,6 +339,8 @@ function requesterDashboard() {
  const active=items.filter(r=>!['Processed','Claimed','Cancelled','Declined'].includes(r.status)).length;
  const ready=items.filter(r=>r.status==='Ready for Release').length;
  const claimed=items.filter(r=>r.status==='Claimed').length;
+ const missed=items.filter(r=>r.status==='Missed Pickup').length;
+ const reschedulePending=items.filter(r=>r.status==='Reschedule Requested').length;
  const alumni=isAlumni();
  const heading=alumni?'Alumni dashboard':'Student dashboard';
  const subtitle=alumni?'Your graduate document requests, status history and collection updates.':'Your academic document requests, required dates and progress updates.';
@@ -345,6 +349,7 @@ function requesterDashboard() {
  return pageHeading(heading,subtitle,button(`${icon('plus')} New request`,'new-request'))+
   `<section class="requester-banner ${alumni?'alumni-portal':'student-portal'}"><div><p class="eyebrow">${alumni?'ALUMNI PORTAL':'STUDENT PORTAL'} · ${escapeHtml(state.user.display_name.split(' ')[0])}</p><h2>${title}</h2><p>${intro}</p></div><div class="requester-banner-symbol">${icon(alumni?'shield':'document')}</div></section>
   <section class="stat-grid">${dashboardStat('My Requests',items.length,'Requests on your account','document','tracked')}${dashboardStat('Active Requests',active,'Pending, processing or awaiting pickup','clock','active')}${dashboardStat('Ready to Collect',ready,'Available after registrar approval','bell','ready')}${dashboardStat('Claimed',claimed,'Confirmed handovers','check','completed')}</section>
+  ${(missed||reschedulePending)?`<div class="pickup-warning" role="status"><span>${icon('info')} ${missed?`<strong>${missed} missed pickup(s).</strong> Request a new appointment in My Requests.`:''} ${reschedulePending?`${reschedulePending} request(s) awaiting registrar rescheduling.`:''}</span>${button('Open My Requests','my-requests','outline sm')}</div>`:''}
   <section class="role-info-row"><div class="role-info-icon">${icon(alumni?'shield':'calendar')}</div><div><strong>${alumni?'Alumni Document Services':'Student Academic Records'}</strong><p>${alumni?'Request employment, graduate-school or credential documents with your former student number.':'Use your student number to submit academic records requests and monitor deadlines.'}</p></div>${button('New document request','new-request','outline')}</section>
   <section class="panel"><div class="panel-header"><div><h2>${alumni?'My alumni requests':'My student requests'}</h2><p>Visible only to your verified ${alumni?'alumni':'student'} account</p></div>${button('Submit another','go-requests','outline')}</div>${myRequestsTable(items)}</section>`;
 }
@@ -430,9 +435,9 @@ function myRequestsTable(items) {
     <td class="main-cell">${escapeHtml(r.public_id)}<span class="sub-cell">${dayLabel(r.submission_date)}</span></td>
     <td><div class="doc-chip-list">${documentsMarkup(r)}</div><span class="sub-cell">Purpose: ${escapeHtml(r.purpose||'—')}</span></td>
     <td>${dayLabel(r.deadline)}<span class="sub-cell wrap-cell">${escapeHtml(r.date_reason||'No date explanation (legacy record)')}</span></td>
-    <td>${statusBadge(r.status)}${r.declined_reason?`<p class="decision-note"><strong>Decline reason:</strong> ${escapeHtml(r.declined_reason)}</p>`:''}${r.cancelled_reason?`<p class="decision-note">${escapeHtml(r.cancelled_reason)}</p>`:''}</td>
+    <td>${statusBadge(r.status)}${r.declined_reason?`<p class="decision-note"><strong>Decline reason:</strong> ${escapeHtml(r.declined_reason)}</p>`:''}${r.cancelled_reason?`<p class="decision-note">${escapeHtml(r.cancelled_reason)}</p>`:''}${r.reschedule_requested_at?`<p class="decision-note">New pickup date requested: ${escapeHtml(r.reschedule_reason||'')}</p>`:''}${r.status==='Missed Pickup'?`<p class="decision-note"><strong>Pickup missed:</strong> Please request another appointment.</p>`:''}</td>
     <td>${r.pickup_at?`<strong>${datetime(r.pickup_at)}</strong><span class="sub-cell wrap-cell">${escapeHtml(r.pickup_note||'Collection at the registrar')}</span>`:'<span class="muted-final">To be scheduled by registrar</span>'}</td>
-    <td>${canCancel(r)?button('Cancel request','open-cancel','outline sm',`data-id="${escapeHtml(r.public_id)}"`):'<span class="muted-final">—</span>'}</td>
+    <td>${canCancel(r)?button('Cancel request','open-cancel','outline sm',`data-id="${escapeHtml(r.public_id)}"`):canRequestReschedule(r)?button('Request new pickup date','open-reschedule','outline sm',`data-id="${escapeHtml(r.public_id)}"`):'<span class="muted-final">—</span>'}</td>
   </tr>`).join('')}</tbody></table></div>`;
 }
 function publicDashboard() {
@@ -503,7 +508,7 @@ function renderTrackCard(data) {
 }
 function adminRequests() {
   const stats=state.adminData.stats;
-  return pageHeading('Document requests','View students and alumni, process documents, and confirm that documents have been received.',`${button(`${icon('refresh')} Refresh`,'refresh','outline')}${button(`${icon('plus')} Load sample data`,'seed','light')}${button(`${icon('check')} Process next`,'process-next','primary',stats.pending?'':'disabled')}`)+`<div class="top-tools"><div class="tab-bar" role="tablist"><button type="button" data-staff-tab="all" class="${state.staffTab==='all'?'active':''}">All requests</button><button type="button" data-staff-tab="priority" class="${state.staffTab==='priority'?'active':''}">Priority ranking</button><button type="button" data-staff-tab="arrival" class="${state.staffTab==='arrival'?'active':''}">FIFO arrivals</button></div></div><div class="filters"><input class="filter-input" id="staffSearch" placeholder="Search ID, name, document…" value="${escapeHtml(state.search)}" aria-label="Filter requests"><select class="filter-select" id="requesterFilter" aria-label="Filter requester type">${['All','Student','Alumni','Not specified'].map(t=>`<option value="${t}" ${state.requesterFilter===t?'selected':''}>${t==='All'?'All requester types':t}</option>`).join('')}</select><select class="filter-select" id="staffFilter" aria-label="Filter status">${['All','Pending','Processing','Awaiting Approval','Ready for Release','Pickup Scheduled','Processed','Claimed','Declined','Cancelled'].map(s=>`<option value="${s}" ${state.filter===s?'selected':''}>${s==='All'?'All statuses':s}</option>`).join('')}</select></div><section class="panel"><div class="panel-header"><div><h2 id="tableHeading">${state.staffTab==='priority'?'Priority ranking':state.staffTab==='arrival'?'FIFO arrival history':'All document requests'}</h2><p id="tableDescription">${state.staffTab==='priority'?'Highest score first, with deadline and arrival tie-breakers.':state.staffTab==='arrival'?'Original arrival order, including claimed requests.':'Staff can update progress and confirm pickup when documents are ready.'}</p></div><span class="badge status-info" id="recordCount">${stats.total} records</span></div><div id="staffTable"></div></section><div class="queue-summary"><span class="online-pip"></span><span>Scores refreshed on <strong>${todayLabel()}</strong></span><span>•</span><span>Min-heap verified: <strong>${stats.heap_valid?'Yes':'No'}</strong></span><span>•</span><span>Hash buckets: <strong>${stats.hash_buckets}</strong></span></div>`;
+  return pageHeading('Document requests','View students and alumni, process documents, and confirm that documents have been received.',`${button(`${icon('refresh')} Refresh`,'refresh','outline')}${button(`${icon('plus')} Load sample data`,'seed','light')}${button(`${icon('check')} Process next`,'process-next','primary',stats.pending?'':'disabled')}`)+`<div class="top-tools"><div class="tab-bar" role="tablist"><button type="button" data-staff-tab="all" class="${state.staffTab==='all'?'active':''}">All requests</button><button type="button" data-staff-tab="priority" class="${state.staffTab==='priority'?'active':''}">Priority ranking</button><button type="button" data-staff-tab="arrival" class="${state.staffTab==='arrival'?'active':''}">FIFO arrivals</button></div></div><div class="filters"><input class="filter-input" id="staffSearch" placeholder="Search ID, name, document…" value="${escapeHtml(state.search)}" aria-label="Filter requests"><select class="filter-select" id="requesterFilter" aria-label="Filter requester type">${['All','Student','Alumni','Not specified'].map(t=>`<option value="${t}" ${state.requesterFilter===t?'selected':''}>${t==='All'?'All requester types':t}</option>`).join('')}</select><select class="filter-select" id="staffFilter" aria-label="Filter status">${['All','Pending','Processing','Awaiting Approval','Ready for Release','Pickup Scheduled','Processed','Claimed','Missed Pickup','Reschedule Requested','Declined','Cancelled'].map(s=>`<option value="${s}" ${state.filter===s?'selected':''}>${s==='All'?'All statuses':s}</option>`).join('')}</select></div><section class="panel"><div class="panel-header"><div><h2 id="tableHeading">${state.staffTab==='priority'?'Priority ranking':state.staffTab==='arrival'?'FIFO arrival history':'All document requests'}</h2><p id="tableDescription">${state.staffTab==='priority'?'Highest score first, with deadline and arrival tie-breakers.':state.staffTab==='arrival'?'Original arrival order, including claimed requests.':'Staff can update progress and confirm pickup when documents are ready.'}</p></div><span class="badge status-info" id="recordCount">${stats.total} records</span></div><div id="staffTable"></div></section><div class="queue-summary"><span class="online-pip"></span><span>Scores refreshed on <strong>${todayLabel()}</strong></span><span>•</span><span>Min-heap verified: <strong>${stats.heap_valid?'Yes':'No'}</strong></span><span>•</span><span>Hash buckets: <strong>${stats.hash_buckets}</strong></span></div>`;
 }
 function nextStatusOptions(r) {
   return `<button class="button outline sm" type="button" data-action="review-request" data-id="${escapeHtml(r.public_id)}">${icon('eye')} Review</button>`;
@@ -512,8 +517,9 @@ function reviewRequestHtml(r) {
   const status=effectiveStatus(r);
   const closed=['Claimed','Declined','Cancelled'].includes(status);
   const canDecide=!closed&&!r.decision_at&&!r.approved_at;
-  const canSchedule=!closed&&r.decision_at&&!r.approved_at;
-  const canClaim=!closed&&r.approved_at;
+  const canReschedule=!closed&&r.approved_at&&(status==='Missed Pickup'||status==='Reschedule Requested');
+  const canSchedule=!closed&&r.decision_at&&(!r.approved_at||canReschedule);
+  const canClaim=!closed&&r.approved_at&&!canReschedule;
   const deadlineReason=escapeHtml(r.date_reason||'Legacy record — no explanation provided');
   const earliest=new Date(Date.now()+24*60*60*1000);
   const localValue=String(earliest.getFullYear())+'-'+String(earliest.getMonth()+1).padStart(2,'0')+'-'+String(earliest.getDate()).padStart(2,'0')+'T'+String(earliest.getHours()).padStart(2,'0')+':'+String(earliest.getMinutes()).padStart(2,'0');
@@ -522,10 +528,10 @@ function reviewRequestHtml(r) {
       <div class="review-meta"><div><small>Requested documents</small><div class="doc-chip-list">${documentsMarkup(r)}</div></div><div><small>Purpose</small><strong>${escapeHtml(r.purpose||'Not stated')}</strong></div><div><small>Date needed by requester</small><strong>${dayLabel(r.deadline)}</strong></div><div><small>Why this date?</small><p>${deadlineReason}</p></div><div><small>Current status</small>${statusBadge(status)}</div><div><small>Priority score</small><strong>${Number(r.priority_score).toFixed(2)} / 100</strong></div></div>
       ${r.declined_reason?`<p class="decision-alert"><strong>Declined:</strong> ${escapeHtml(r.declined_reason)}</p>`:''}
       ${r.cancelled_reason?`<p class="decision-alert"><strong>Cancelled:</strong> ${escapeHtml(r.cancelled_reason)}</p>`:''}
-      ${r.pickup_at?`<div class="pickup-summary"><strong>${icon('calendar')} Pickup: ${datetime(r.pickup_at)}</strong><p>${escapeHtml(r.pickup_note||'No additional instructions')}</p></div>`:''}
+      ${r.pickup_at?`<div class="pickup-summary"><strong>${icon('calendar')} ${canReschedule?'Previous pickup':'Pickup'}: ${datetime(r.pickup_at)}</strong><p>${escapeHtml(r.pickup_note||'No additional instructions')}</p></div>`:''}${r.reschedule_reason?`<p class="decision-alert"><strong>Reschedule request:</strong> ${escapeHtml(r.reschedule_reason)}</p>`:''}${status==='Missed Pickup'?`<p class="decision-alert">The pickup day passed without confirmed collection. Assign a new schedule.</p>`:''}
     </div><div class="review-actions">
       ${canDecide?`<h3>Approve or decline</h3><p class="panel-subtitle">Approve to begin preparing the documents. When declining, a clear reason is required and will be visible to the requester.</p><label class="form-label">Decline reason<textarea id="reviewDeclineReason" rows="3" minlength="10" maxlength="500" placeholder="Explain why the request cannot be accepted."></textarea></label><div class="review-button-pair">${button('Approve request','approve-request','primary',`data-id="${escapeHtml(r.public_id)}"`)}${button('Decline request','decline-request','outline',`data-id="${escapeHtml(r.public_id)}"`)}</div>`:''}
-      ${canSchedule?`<h3>Schedule document collection</h3><p class="panel-subtitle">The registrar chooses when documents can be picked up. The requested Date Needed is a preference, not a guaranteed pickup date.</p><label class="form-label">Scheduled pickup date & time<input id="reviewPickupAt" type="datetime-local" required value="${localValue}"></label><label class="form-label">Pickup instructions (optional)<textarea id="reviewPickupNote" rows="2" maxlength="500" placeholder="e.g. Bring a valid ID. Claim at Registrar Window 2."></textarea></label>${button('Confirm pickup schedule','schedule-pickup','primary',`data-id="${escapeHtml(r.public_id)}"`)}`:''}
+      ${canSchedule?`<h3>${canReschedule?'Reschedule document collection':'Schedule document collection'}</h3><p class="panel-subtitle">The registrar chooses when documents can be picked up. The requested Date Needed is a preference, not a guaranteed pickup date.</p><label class="form-label">Scheduled pickup date & time<input id="reviewPickupAt" type="datetime-local" required value="${localValue}"></label><label class="form-label">Pickup instructions (optional)<textarea id="reviewPickupNote" rows="2" maxlength="500" placeholder="e.g. Bring a valid ID. Claim at Registrar Window 2."></textarea></label>${button(canReschedule?'Confirm new pickup schedule':'Confirm pickup schedule','schedule-pickup','primary',`data-id="${escapeHtml(r.public_id)}"`)}`:''}
       ${canClaim?`<h3>Confirm actual collection</h3><p class="panel-subtitle">Pickup is scheduled for <strong>${r.pickup_at?datetime(r.pickup_at):'not recorded (legacy)'}</strong>. Only confirm after the requester has actually received every document.</p>${button('Mark as Claimed','mark-claimed','primary',`data-id="${escapeHtml(r.public_id)}"`)}`:''}
       ${closed?`<div class="tip-box">${icon('shield')}<span>This request is finalized. Its history is preserved in SQLite.</span></div>`:''}
     </div></div>`;
@@ -570,7 +576,7 @@ function profilePage() {
 }
 const helpGuides={
   student:[['Create your account','Click Register on the login page, choose Student or Alumni, and enter your name, student or former student number, email and password.'],['Verify your email','Open the email verification link within 24 hours. If it expires, use Resend verification email from the login page.'],['Sign in and request','Sign in to your own Student or Alumni portal. Open Document Request → New Request; select the document and purpose, then choose Date Needed directly in the form using the interactive calendar.'],['Save your reference ID','The system automatically gives each submission a unique request ID.'],['Follow status','Dashboard and Notifications show your own requests and updates. Registrar staff confirm physical pickup as Claimed.']],
-  staff:[['Sign in as registrar staff','Click Sign in in the top-right corner or the registrar login shortcut in the sidebar.'],['Open the queue dashboard','Review live counts, highest-priority pending requests, and registrar activity.'],['Manage student & alumni requests','Open Document Request to see all students and alumni, filter by requester type, and update request status.'],['Approve then release','Review each request and its Date Needed explanation. Approve or decline with a reason; for approved requests, schedule the pickup date/time. Confirm Claimed only after handover.'],['Review claimed records','Select Claimed / Released in the staff sidebar to see confirmed document handovers.'],['Understand priority selection','The demonstration score is PS = 0.50U + 0.30W + 0.20C. U is deadline urgency, W waiting time, and C requester category (each 0–100). Scores are recalculated before ranking or processing.'],['Review updates','Use Notifications for in-app activity. Profile includes change password and sign out.']]
+  staff:[['Handle missed pickups','When the scheduled day has passed, check Missed Pickup in Document Requests and schedule a new date. Do not mark it Claimed without physical handover.'],['Sign in as registrar staff','Click Sign in in the top-right corner or the registrar login shortcut in the sidebar.'],['Open the queue dashboard','Review live counts, highest-priority pending requests, and registrar activity.'],['Manage student & alumni requests','Open Document Request to see all students and alumni, filter by requester type, and update request status.'],['Approve then release','Review each request and its Date Needed explanation. Approve or decline with a reason; for approved requests, schedule the pickup date/time. Confirm Claimed only after handover.'],['Review claimed records','Select Claimed / Released in the staff sidebar to see confirmed document handovers.'],['Understand priority selection','The demonstration score is PS = 0.50U + 0.30W + 0.20C. U is deadline urgency, W waiting time, and C requester category (each 0–100). Scores are recalculated before ranking or processing.'],['Review updates','Use Notifications for in-app activity. Profile includes change password and sign out.']]
 };
 function renderHelp() {
   $$('#helpModal [data-help-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.helpTab===state.helpTab));
@@ -620,6 +626,7 @@ async function refreshCurrent() {
   toast('Workspace is up to date.');
 }
 async function executeAction(action, element) {
+  if (action==='view-missed' || action==='view-reschedules') {if(!isStaff())throw Error('Registrar login required.');state.staffTab='all';state.filter=action==='view-missed'?'Missed Pickup':'Reschedule Requested';return navigate('requests');}
   if (action==='go-requests' || action==='my-requests') {state.requestMode='mine';return navigate('requests');}
   if (action==='new-request') {state.requestMode='new';state.pickerOpen=false;return navigate('requests');}
   if(action==='toggle-needed-picker') {
@@ -664,6 +671,15 @@ async function executeAction(action, element) {
     state.reviewId=id;
     $('#reviewContent').innerHTML=reviewRequestHtml(record);
     return openModal('reviewModal');
+  }
+  if(action==='open-reschedule') {
+    if(!isRequester())throw Error('Student/Alumni login required.');
+    const record=state.myRequests?.find(r=>r.public_id===element.dataset.id);
+    if(!record||!canRequestReschedule(record))throw Error('Cannot request rescheduling for this request.');
+    state.rescheduleId=record.public_id;
+    $('#rescheduleRequestId').textContent=record.public_id;
+    $('#rescheduleReason').value='';
+    return openModal('rescheduleModal');
   }
   if(action==='open-cancel') {
     if(!isRequester())throw Error('Sign in with your Student/Alumni account.');
@@ -750,6 +766,16 @@ document.addEventListener('click',async event=>{
 });
 document.addEventListener('submit',async event=>{
   const form=event.target;
+  if(form.id==='rescheduleRequestForm'){
+    event.preventDefault();
+    if(!isRequester()||!state.rescheduleId)return;
+    const reason=$('#rescheduleReason')?.value?.trim()||'';
+    if(reason.length<10){toast('Provide a reason with at least 10 characters.',true);return;}
+    const submit=$('#confirmRescheduleButton');if(submit)submit.disabled=true;
+    try {const reply=await api(`/api/my/requests/${encodeURIComponent(state.rescheduleId)}/request-reschedule`,{method:'POST',body:{reason}});
+      closeModal('rescheduleModal');state.rescheduleId=null;toast(reply.message);return refreshCurrent();}
+    catch(error){toast(error.message,true);}finally{if(submit)submit.disabled=false;}return;
+  }
   if(form.id==='cancelRequestForm'){
     event.preventDefault();
     if(!isRequester()||!state.cancelId)return;

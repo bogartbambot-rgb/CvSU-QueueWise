@@ -10,7 +10,7 @@ def test_compact_calendar_and_mobile_install_regression(tmp_path):
         js = client.get('/static/js/app.js').text
         marketing = client.get('/static/css/marketing.css').text
         sw = client.get('/sw.js').text
-        assert 'v1.12.3' in html
+        assert 'v1.12.4' in html
         assert 'width:min(100%, 430px)' in css
         assert '.needed-day{box-sizing:border-box' in css
         assert 'height:40px' in css
@@ -22,4 +22,4 @@ def test_compact_calendar_and_mobile_install_regression(tmp_path):
         assert '.qw-mobile-install{display:inline-flex' in marketing
         assert 'Android — Chrome' in html
         assert 'iPhone — Safari' in html
-        assert 'queuewise-shell-v1123' in sw
+        assert 'queuewise-shell-v1124' in sw

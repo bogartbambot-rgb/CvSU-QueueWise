@@ -16,4 +16,4 @@ def test_mobile_install_visible_and_instructions(tmp_path):
         assert 'Add to Home Screen' in html and 'Install app' in html
         assert 'apple-touch-icon.png' in html
         assert c.get('/static/icons/apple-touch-icon.png').status_code == 200
-        assert 'queuewise-shell-v1123' in c.get('/sw.js').text
+        assert 'queuewise-shell-v1124' in c.get('/sw.js').text

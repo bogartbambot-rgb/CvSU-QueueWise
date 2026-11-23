@@ -66,3 +66,7 @@ New nullable columns and the document-items table are created automatically when
 ```
 
 **62/62 tests passed** in the build environment. The tests cover validation, permissions, multi-document atomic requests, decline reasons, cancellation, schedule-not-before-claim enforcement, old database migration and existing Gmail/PWA/priority features. Browser-level navigation and live Gmail/Railway delivery should be tested after deployment; they are not proven by the automated suite.
+
+
+## Missed pickup & rescheduling (v1.12.4)
+When a scheduled pickup day ends without an actual registrar-confirmed handover, QueueWise marks it **Missed Pickup** on the next relevant portal/admin visit and records an in-app notification. Registered Student/Alumni users can request a new date with a reason; the registrar schedules the new appointment. The original request ID and audit events remain unchanged. See `UPGRADE_TO_V1_12_4.md`.

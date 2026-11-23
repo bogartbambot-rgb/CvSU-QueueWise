@@ -11,11 +11,11 @@
   <meta name="description" content="QueueWise — an academic document request and release portal.">
   <link rel="icon" href="/static/icons/icon-192.png" type="image/png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.12.3">
-  <link rel="stylesheet" href="/static/css/auth.css?v=1.12.3">
-  <link rel="stylesheet" href="/static/css/marketing.css?v=1.12.3">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.12.4">
+  <link rel="stylesheet" href="/static/css/auth.css?v=1.12.4">
+  <link rel="stylesheet" href="/static/css/marketing.css?v=1.12.4">
   <title>QueueWise | Document Request Portal</title>
-  <script src="/static/js/app.js?v=1.12.3" defer></script>
+  <script src="/static/js/app.js?v=1.12.4" defer></script>
 </head>
 <body>
   <svg class="icon-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -66,7 +66,7 @@
           <button class="side-action" data-action="install" id="sidebarInstallButton"><svg><use href="#i-download"/></svg><span>Install QueueWise PWA</span></button>
         </div>
         <div class="sidebar-help"><span class="help-spark">✦</span><strong>Need a little guidance?</strong><p>Learn how to submit and track your requests in seconds.</p><button class="inline-link" data-action="help">Explore the guide <span>↗</span></button></div>
-        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.12.3</span></div>
+        <div class="foot-status"><span class="online-pip"></span><span>System prototype <small>Academic demonstration</small></span><span class="version">v1.12.4</span></div>
       </div>
     </aside>
     <div class="main-area">
@@ -93,6 +93,7 @@
   </dialog>
   <dialog class="modal success-modal" id="successModal" aria-labelledby="successTitle"><div class="modal-body success-body"><span class="success-check"><svg><use href="#i-check"/></svg></span><h2 id="successTitle">Request submitted!</h2><p>Your document request has been added to the queue. Save this reference number to check your request's status.</p><div class="success-id"><small>YOUR REFERENCE NUMBER</small><strong id="successId">REQ-0000</strong><button class="icon-button" data-action="copy-success" aria-label="Copy request ID" title="Copy request ID"><svg><use href="#i-document"/></svg></button></div><div class="success-actions"><button class="button primary" data-action="track-success">Track this request <svg><use href="#i-arrow"/></svg></button><button class="button light" data-close="successModal">Close</button></div></div></dialog>
   <dialog class="modal workflow-modal" id="reviewModal" aria-labelledby="reviewTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-document"/></svg></span><button class="icon-button" data-close="reviewModal" aria-label="Close request review"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><h2 id="reviewTitle">Registrar request review</h2><p class="modal-subtitle">Read the deadline justification, decide, and schedule collection.</p><div id="reviewContent"></div></div></dialog>
+  <dialog class="modal workflow-modal cancel-dialog" id="rescheduleModal" aria-labelledby="rescheduleTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-calendar"/></svg></span><button class="icon-button" data-close="rescheduleModal" aria-label="Close reschedule request"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><h2 id="rescheduleTitle">Request a new pickup date</h2><p class="modal-subtitle">For <strong id="rescheduleRequestId"></strong>: explain why you cannot collect on the assigned date. The registrar will choose and confirm a new appointment. Your original request ID stays the same.</p><form id="rescheduleRequestForm" class="form-stack"><label class="form-label">Reason for rescheduling <span class="required">*</span><textarea id="rescheduleReason" required minlength="10" maxlength="500" rows="4" placeholder="Example: I could not attend my scheduled pickup because of an examination."></textarea></label><div class="review-button-pair"><button type="submit" id="confirmRescheduleButton" class="button primary">Send to registrar</button><button type="button" class="button outline" data-close="rescheduleModal">Keep schedule</button></div></form></div></dialog>
   <dialog class="modal workflow-modal cancel-dialog" id="cancelModal" aria-labelledby="cancelTitle"><div class="modal-heading"><span class="modal-icon"><svg><use href="#i-info"/></svg></span><button class="icon-button" data-close="cancelModal" aria-label="Close cancellation"><svg><use href="#i-close"/></svg></button></div><div class="modal-body"><h2 id="cancelTitle">Cancel document request?</h2><p class="modal-subtitle">Request <strong id="cancelRequestId"></strong> will be closed. You can submit a new corrected request, but this cancellation cannot be undone.</p><form id="cancelRequestForm" class="form-stack"><label class="form-label">Reason (optional)<textarea id="cancelRequestReason" maxlength="300" rows="3" placeholder="e.g. I entered the wrong document type"></textarea></label><div class="review-button-pair"><button type="submit" id="confirmCancelButton" class="button primary">Confirm cancellation</button><button type="button" class="button outline" data-close="cancelModal">Keep request</button></div></form></div></dialog>
   <div id="toastArea" aria-live="polite" aria-atomic="false"></div>
 </body>

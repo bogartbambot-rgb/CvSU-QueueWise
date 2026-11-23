@@ -108,5 +108,5 @@ def test_frontend_has_three_field_controls_and_updated_pwa(tmp_path):
         assert 'name="last_name"' in js
         assert '<label class="form-label">Full name ' not in js
         assert 'name="full_name"' not in js.split('function registerPage()')[1].split('function switchRegistrationRole(')[0]
-        assert 'queuewise-shell-v1123' in client.get('/sw.js').text
-        assert 'v1.12.3' in client.get('/').text
+        assert 'queuewise-shell-v1124' in client.get('/sw.js').text
+        assert 'v1.12.4' in client.get('/').text

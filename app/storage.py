@@ -165,7 +165,9 @@ def init_database(path: str, demo_password: str):
             ('decision_at', 'TEXT'), ('decision_by', 'TEXT'),
             ('declined_at', 'TEXT'), ('declined_reason', 'TEXT'),
             ('cancelled_at', 'TEXT'), ('cancelled_reason', 'TEXT'),
-            ('pickup_at', 'TEXT'), ('pickup_note', 'TEXT')
+            ('pickup_at', 'TEXT'), ('pickup_note', 'TEXT'),
+            ('missed_at', 'TEXT'), ('reschedule_requested_at', 'TEXT'),
+            ('reschedule_reason', 'TEXT'), ('reschedule_count', 'INTEGER NOT NULL DEFAULT 0')
         ):
             if field not in columns:
                 db.execute(f'ALTER TABLE requests ADD COLUMN {field} {definition}')

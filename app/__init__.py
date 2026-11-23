@@ -111,6 +111,10 @@ class PickupSchedulePayload(BaseModel):
     note: str | None = Field(default=None, max_length=500)
 
 
+class RescheduleRequestPayload(BaseModel):
+    reason: str = Field(min_length=10, max_length=500)
+
+
 class CancelPayload(BaseModel):
     reason: str | None = Field(default=None, max_length=300)
 
@@ -249,6 +253,49 @@ def ensure_id(value: str):
     return value
 
 
+def missed_pickup(record: dict, *, today: date | None = None) -> bool:
+    """A missed appointment starts *after the whole Manila calendar day* ends.
+
+    An appointment at 9 AM is not marked missed at 9:01 AM; staff can still
+    hand over documents later that day. Real pickup requires staff confirmation.
+    """
+    if not (record.get('pickup_at') and record.get('approved_at')) or (
+        record.get('claimed_at') or record.get('cancelled_at') or record.get('declined_at')
+    ):
+        return False
+    try:
+        scheduled = datetime.fromisoformat(record['pickup_at'])
+        scheduled = scheduled.replace(tzinfo=MANILA) if scheduled.tzinfo is None else scheduled.astimezone(MANILA)
+        return scheduled.date() < (today or now().date())
+    except (TypeError, ValueError):
+        return False
+
+
+def sync_missed_pickups(db) -> None:
+    """Called inside a transaction on live reads. Emit each missed event ONCE.
+
+    No background worker is required: the first subsequent portal/admin/API
+    visit reconciles the record. No student details go to public ID tracking.
+    """
+    candidates = db.execute("""SELECT * FROM requests WHERE pickup_at IS NOT NULL
+        AND approved_at IS NOT NULL AND claimed_at IS NULL AND declined_at IS NULL
+        AND cancelled_at IS NULL AND missed_at IS NULL""").fetchall()
+    for row in candidates:
+        record = dict(row)
+        if not missed_pickup(record):
+            continue
+        timestamp = now().isoformat()
+        changed = db.execute("""UPDATE requests SET missed_at=?,updated_at=? WHERE id=?
+            AND missed_at IS NULL AND claimed_at IS NULL AND declined_at IS NULL AND cancelled_at IS NULL""",
+            (timestamp,timestamp,record['id']))
+        if changed.rowcount:
+            add_event(db,record['id'],'Missed Pickup',
+                      'The scheduled collection day ended without a confirmed document handover. Request a new pickup schedule.')
+            add_notification(db,'Missed pickup',
+                             f'{record["public_id"]} was not claimed on the scheduled date. Arrange a new pickup schedule.',
+                             record['public_id'])
+
+
 def display_request_status(record: dict) -> str:
     """Never disclose release readiness before explicit registrar approval."""
     if record.get('cancelled_at'):
@@ -257,6 +304,10 @@ def display_request_status(record: dict) -> str:
         return 'Declined'
     if record.get('claimed_at'):
         return 'Claimed'
+    if record.get('reschedule_requested_at'):
+        return 'Reschedule Requested'
+    if missed_pickup(record):
+        return 'Missed Pickup'
     if record.get('pickup_at') and record.get('approved_at') and datetime.fromisoformat(record['pickup_at']) > now():
         return 'Pickup Scheduled'
     if record.get('status') == 'Ready for Release' and not record.get('approved_at'):
@@ -268,6 +319,7 @@ def display_request_status(record: dict) -> str:
 
 def read_staff_snapshot(db) -> dict:
     """Refresh on every priority-sensitive view; the heap is a separate ADT."""
+    sync_missed_pickups(db)
     records = fetch_records(db)
     engine = QueueEngine(records)
     engine.refresh(now().date())
@@ -290,8 +342,10 @@ def read_staff_snapshot(db) -> dict:
             'pending': len(engine.heap.items),
             'declined': sum(bool(r.get('declined_at')) for r in records),
             'cancelled': sum(bool(r.get('cancelled_at')) for r in records),
+            'missed_pickup': sum(display_request_status(r)=='Missed Pickup' for r in records),
+            'reschedule_requested': sum(display_request_status(r)=='Reschedule Requested' for r in records),
             'processing': counts['Processing'],
-            'ready': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') and (not r.get('pickup_at') or datetime.fromisoformat(r['pickup_at']) <= now()) for r in active_records),
+            'ready': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') and not missed_pickup(r) and not r.get('reschedule_requested_at') and (not r.get('pickup_at') or datetime.fromisoformat(r['pickup_at']) <= now()) for r in active_records),
             'awaiting_approval': sum(
                 (r['status'] == 'Processed' or r['status'] == 'Ready for Release')
                 and not r.get('approved_at') and not r.get('claimed_at')
@@ -299,7 +353,7 @@ def read_staff_snapshot(db) -> dict:
             ),
             'processed': counts['Processed'] - len(claimed),
             'claimed': len(claimed),
-            'ready_to_claim': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') and (not r.get('pickup_at') or datetime.fromisoformat(r['pickup_at']) <= now()) for r in active_records),
+            'ready_to_claim': sum(r['status'] == 'Ready for Release' and r.get('approved_at') and not r.get('claimed_at') and not missed_pickup(r) and not r.get('reschedule_requested_at') and (not r.get('pickup_at') or datetime.fromisoformat(r['pickup_at']) <= now()) for r in active_records),
             'students': sum(r.get('requester_type') == 'Student' for r in records),
             'alumni': sum(r.get('requester_type') == 'Alumni' for r in records),
             'unclassified': sum(r.get('requester_type') not in ('Student', 'Alumni') for r in records),
@@ -566,11 +620,15 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
     @app.get('/api/my/requests')
     def my_requests(user=Depends(require_requester)):
         with connect(database) as db:
+            db.execute('BEGIN IMMEDIATE')
+            sync_missed_pickups(db)
             items = [dict(row) for row in db.execute("""SELECT id,public_id,document_type,category,purpose,deadline,date_reason,
                     priority_score,status,submission_date,updated_at,processed_at,claimed_at,approved_at,
-                    decision_at,declined_at,declined_reason,cancelled_at,cancelled_reason,pickup_at,pickup_note
+                    decision_at,declined_at,declined_reason,cancelled_at,cancelled_reason,pickup_at,pickup_note,
+                    missed_at,reschedule_requested_at,reschedule_reason,reschedule_count
                     FROM requests WHERE portal_user_id=? ORDER BY id DESC""", (user['id'],))]
             attach_documents(db, items)
+            db.execute('COMMIT')
         for item in items:
             item['status'] = display_request_status(item)
             item['approved_for_release'] = bool(item.get('approved_at'))
@@ -579,9 +637,12 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
     @app.get('/api/my/notifications')
     def my_notifications(user=Depends(require_requester)):
         with connect(database) as db:
+            db.execute('BEGIN IMMEDIATE')
+            sync_missed_pickups(db)
             events = [dict(row) for row in db.execute("""SELECT r.public_id,r.approved_at,e.status,e.message,e.created_at
                  FROM request_events e JOIN requests r ON r.id=e.request_id
                  WHERE r.portal_user_id=? ORDER BY e.id DESC LIMIT 100""", (user['id'],))]
+            db.execute('COMMIT')
         for event in events:
             if event['status'] == 'Ready for Release' and not event['approved_at']:
                 event['status'] = 'Awaiting Approval'
@@ -654,6 +715,7 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
     def track(public_id: str):
         ensure_id(public_id)
         with connect(database) as db:
+            # Public tracking reads only, without triggering writes for other users.
             # Demonstrate ID lookup through the custom separate-chaining hash table.
             engine = QueueEngine(fetch_records(db))
             record = engine.hash_table.get(public_id)
@@ -671,6 +733,9 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                 'Claimed': 'Collection confirmed.',
                 'Declined': 'Request declined. Sign in for the explanation.',
                 'Cancelled': 'Request cancelled.',
+                'Missed Pickup': 'The document was not collected on its scheduled day. Sign in to request rescheduling.',
+                'Reschedule Requested': 'A new collection schedule has been requested.',
+                'Pickup Rescheduled': 'The registrar assigned a new pickup date.',
             }
             events = [
                 {'status': ('Awaiting Approval' if row['status']=='Ready for Release' and not record.get('approved_at')
@@ -780,6 +845,40 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                 raise
         return {'message': f'{public_id} cancelled. You may submit a corrected new request.'}
 
+    @app.post('/api/my/requests/{public_id}/request-reschedule', dependencies=[Depends(require_csrf)])
+    def request_reschedule(public_id: str, payload: RescheduleRequestPayload, request: Request,
+                           user=Depends(require_requester)):
+        ensure_id(public_id)
+        reason = ' '.join(payload.reason.split())
+        if len(reason) < 10:
+            fail(400, 'Explain why you need a new pickup date (at least ten characters).')
+        with connect(database) as db:
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                sync_missed_pickups(db)
+                record = db.execute('SELECT * FROM requests WHERE public_id=? AND portal_user_id=?',
+                                    (public_id,user['id'])).fetchone()
+                if record is None:
+                    fail(404, 'Request not found in your account.')
+                if (record['claimed_at'] or record['cancelled_at'] or record['declined_at']):
+                    fail(409, 'Completed or closed requests cannot be rescheduled.')
+                if not record['approved_at'] or not record['pickup_at']:
+                    fail(409, 'A registrar pickup schedule is required before requesting a new date.')
+                if record['reschedule_requested_at']:
+                    fail(409, 'A reschedule request is already awaiting registrar action.')
+                timestamp = now().isoformat()
+                db.execute("""UPDATE requests SET reschedule_requested_at=?,reschedule_reason=?,updated_at=?
+                              WHERE id=?""",(timestamp,reason,timestamp,record['id']))
+                add_event(db,record['id'],'Reschedule Requested',
+                          'Requester asked for a new pickup schedule. Reason: '+reason)
+                add_notification(db,'Reschedule requested',
+                                 f'{public_id} needs a new pickup schedule. Check the requester explanation.',public_id)
+                db.execute('COMMIT')
+            except Exception:
+                db.execute('ROLLBACK')
+                raise
+        return {'message':f'Reschedule request for {public_id} sent to the registrar.'}
+
     @app.post('/api/admin/requests/{public_id}/decision', dependencies=[Depends(require_csrf)])
     def decide_request(public_id: str, payload: DecisionPayload, request: Request,
                        user=Depends(require_staff)):
@@ -838,25 +937,39 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                 record = db.execute('SELECT * FROM requests WHERE public_id=?', (public_id,)).fetchone()
                 if record is None:
                     fail(404, 'Request not found.')
-                if record['cancelled_at'] or record['declined_at'] or record['claimed_at'] or record['approved_at']:
-                    fail(409, 'Cancelled, declined, claimed or scheduled requests cannot be rescheduled here.')
+                if record['cancelled_at'] or record['declined_at'] or record['claimed_at']:
+                    fail(409, 'Closed requests cannot be scheduled again.')
+                rescheduling = bool(record['approved_at'])
+                if rescheduling and not (missed_pickup(dict(record)) or record['reschedule_requested_at']):
+                    fail(409, 'An active pickup date cannot be changed without a requester reschedule request or a missed pickup.')
                 if not record['decision_at']:
                     fail(409, 'First approve the request before setting a pickup schedule.')
                 if record['status'] not in ('Processing', 'Processed', 'Ready for Release'):
                     fail(409, 'Prepare the documents before scheduling pickup.')
-                db.execute('''UPDATE requests SET status='Ready for Release',approved_at=?,approved_by=?,
-                    pickup_at=?,pickup_note=?,updated_at=? WHERE id=?''',
-                    (timestamp,user['username'],appointment.isoformat(),note or None,timestamp,record['id']))
+                db.execute('''UPDATE requests SET status='Ready for Release',
+                    approved_at=COALESCE(approved_at,?), approved_by=COALESCE(approved_by,?),
+                    pickup_at=?,pickup_note=?,updated_at=?,missed_at=NULL,
+                    reschedule_requested_at=NULL,reschedule_reason=NULL,
+                    reschedule_count=reschedule_count+? WHERE id=?''',
+                    (timestamp,user['username'],appointment.isoformat(),note or None,timestamp,
+                     1 if rescheduling else 0,record['id']))
                 readable = appointment.strftime('%B %d, %Y at %I:%M %p')
-                add_event(db, record['id'], 'Ready for Release',
-                          f'Registrar scheduled document collection for {readable}.' + (f' Instructions: {note}' if note else ''))
-                add_notification(db, 'Pickup scheduled',
-                                 f'{public_id} is ready for release on {readable}.',public_id)
+                if rescheduling:
+                    prior = record['pickup_at']
+                    add_event(db,record['id'],'Pickup Rescheduled',
+                              f'Registrar moved the pickup from {prior} to {readable}.' +
+                              (f' Requester reason: {record["reschedule_reason"]}.' if record['reschedule_reason'] else ''))
+                    add_notification(db,'Pickup rescheduled',f'{public_id} has a new pickup date: {readable}.',public_id)
+                else:
+                    add_event(db, record['id'], 'Ready for Release',
+                              f'Registrar scheduled document collection for {readable}.' + (f' Instructions: {note}' if note else ''))
+                    add_notification(db, 'Pickup scheduled',
+                                     f'{public_id} is ready for release on {readable}.',public_id)
                 db.execute('COMMIT')
             except Exception:
                 db.execute('ROLLBACK')
                 raise
-        return {'message': f'Pickup for {public_id} scheduled on {readable}.',
+        return {'message': f'Pickup for {public_id} {"rescheduled" if rescheduling else "scheduled"} on {readable}.',
                 'pickup_at': appointment.isoformat()}
 
     @app.post('/api/admin/requests/{public_id}/approve', dependencies=[Depends(require_csrf)])
@@ -903,7 +1016,7 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
         with connect(database) as db:
             db.execute('BEGIN IMMEDIATE')
             try:
-                record = db.execute('SELECT id,status,claimed_at,approved_at,pickup_at,portal_user_id,cancelled_at,declined_at FROM requests WHERE public_id=?',
+                record = db.execute('SELECT * FROM requests WHERE public_id=?',
                                     (public_id,)).fetchone()
                 if record is None:
                     fail(404, 'Request not found.')
@@ -915,6 +1028,8 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
                     fail(409, 'A registrar-assigned pickup appointment is required.')
                 if record['pickup_at'] and datetime.fromisoformat(record['pickup_at']) > now():
                     fail(409, 'Collection cannot be confirmed before the scheduled pickup date and time.')
+                if record['portal_user_id'] is not None and (missed_pickup(dict(record)) or record['reschedule_requested_at']):
+                    fail(409, 'Pickup was missed or rescheduling is pending. Assign a new date before confirming receipt.')
                 timestamp = now().isoformat()
                 # SQLite original status constraint remains valid; claimed_at
                 # differentiates physical pickup from simple processing.
@@ -939,9 +1054,12 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
     @app.get('/api/admin/notifications')
     def staff_notifications(request: Request, user=Depends(require_staff)):
         with connect(database) as db:
+            db.execute('BEGIN IMMEDIATE')
+            sync_missed_pickups(db)
             records = [dict(row) for row in db.execute(
                 'SELECT * FROM notifications ORDER BY id DESC LIMIT 100')]
             unread = db.execute('SELECT COUNT(*) AS n FROM notifications WHERE is_read=0').fetchone()['n']
+            db.execute('COMMIT')
         return {'notifications': records, 'unread': unread}
 
     @app.post('/api/admin/notifications/read-all', dependencies=[Depends(require_csrf)])
