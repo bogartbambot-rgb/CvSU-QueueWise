@@ -1,4 +1,6 @@
 """Missed appointments are reconciled, retained and rescheduled safely."""
+from tests._office_dates import open_day, open_time
+
 from datetime import timedelta
 import sqlite3
 from fastapi.testclient import TestClient
@@ -25,7 +27,7 @@ def new_request(client):
     result=client.post('/api/requests',json={
         'requester_name':'Maria Lopez', 'document_type':'Certificate of Grades',
         'category':'Regular','date_reason':'I need the record for an academic scholarship application.',
-        'purpose':'Scholarship','deadline':(now().date()+timedelta(days=18)).isoformat()
+        'purpose':'Scholarship','deadline':open_day(18).isoformat()
     },headers=csrf(client))
     assert result.status_code==201,result.text
     return result.json()['request']['id']
@@ -37,7 +39,7 @@ def staff_login(client):
 def approve_schedule(client,ref):
     result=client.post(f'/api/admin/requests/{ref}/decision',json={'decision':'approve'},headers=csrf(client))
     assert result.status_code==200,result.text
-    result=client.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':(now()+timedelta(days=2)).isoformat()},headers=csrf(client))
+    result=client.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':open_time(2).isoformat()},headers=csrf(client))
     assert result.status_code==200,result.text
 
 def test_missed_pickup_after_whole_day_not_same_day(tmp_path):
@@ -96,7 +98,7 @@ def test_reschedule_request_private_admin_approval_and_history(tmp_path):
         assert snapshot['stats']['reschedule_requested']==1
         assert snapshot['requests'][0]['reschedule_reason']
         assert staff.post(f'/api/admin/requests/{ref}/claim',headers=csrf(staff)).status_code==409
-        new_time=(now()+timedelta(days=5)).isoformat()
+        new_time=open_time(5).isoformat()
         response=staff.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':new_time,'note':'Come to the registrar'},headers=csrf(staff))
         assert response.status_code==200,response.text
         assert 'rescheduled' in response.json()['message']
@@ -128,11 +130,11 @@ def test_registrar_proactive_reschedule_after_no_show(tmp_path):
         staff_login(staff)
         approve_schedule(staff,ref)
         # No arbitrary editing of active scheduled future appointments.
-        assert staff.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':(now()+timedelta(days=7)).isoformat()},headers=csrf(staff)).status_code==409
+        assert staff.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':open_time(7).isoformat()},headers=csrf(staff)).status_code==409
         with sqlite3.connect(database) as db:
             db.execute('UPDATE requests SET pickup_at=? WHERE public_id=?',
                        ((now()-timedelta(days=1)).isoformat(),ref))
         staff.get('/api/admin/requests')
-        updated=staff.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':(now()+timedelta(days=6)).isoformat()},headers=csrf(staff))
+        updated=staff.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':open_time(6).isoformat()},headers=csrf(staff))
         assert updated.status_code==200,updated.text
         assert owner.get('/api/my/requests').json()['requests'][0]['status']=='Pickup Scheduled'

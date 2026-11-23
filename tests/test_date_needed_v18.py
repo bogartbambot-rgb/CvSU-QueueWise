@@ -1,4 +1,6 @@
 """Ensure the selected needed-by date is private to requester and visible to registrar."""
+from tests._office_dates import open_day, open_time
+
 from datetime import timedelta
 from fastapi.testclient import TestClient
 from app import create_app
@@ -22,7 +24,7 @@ def register_login(c, role):
 
 def test_both_roles_need_date_kept_for_admin(tmp_path):
     with TestClient(create_app(str(tmp_path/'dates.db'),testing=True)) as c:
-        date_needed=(now().date()+timedelta(days=11)).isoformat()
+        date_needed=open_day(11).isoformat()
         for role in ['Student','Alumni']:
             user=register_login(c,role)
             req={'requester_name':user['full_name'],'requester_type':role,'student_number':user['student_number'],

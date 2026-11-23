@@ -1,3 +1,9 @@
+# QueueWise v1.12.6 — Registrar Office Days and Hours
+
+**Current release:** Monday–Thursday, 8:00 AM–before 5:00 PM only for Date Needed and pickup scheduling. Friday–Sunday dates are disabled/rejected, including admin rescheduling. See [UPGRADE_TO_V1_12_6.md](UPGRADE_TO_V1_12_6.md). All earlier project features and the SQLite storage format are preserved.
+
+---
+
 # QueueWise v1.12.3 — Registration Name Fields Update
 
 The Student and Alumni **Register** page now has separate **First name**, **Middle name (optional)**, and **Last name** fields. The backend validates each component, supports common middle initials and multi-part names, and assembles a compatible full display name. Existing accounts and SQLite requests are preserved by a non-destructive migration. The PWA cache version has also been updated.
@@ -65,7 +71,7 @@ New nullable columns and the document-items table are created automatically when
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**62/62 tests passed** in the build environment. The tests cover validation, permissions, multi-document atomic requests, decline reasons, cancellation, schedule-not-before-claim enforcement, old database migration and existing Gmail/PWA/priority features. Browser-level navigation and live Gmail/Railway delivery should be tested after deployment; they are not proven by the automated suite.
+**92/92 tests passed** in the v1.12.6 build environment. The tests cover validation, permissions, multi-document atomic requests, decline reasons, cancellation, schedule-not-before-claim enforcement, old database migration and existing Gmail/PWA/priority features. Browser-level navigation and live Gmail/Railway delivery should be tested after deployment; they are not proven by the automated suite.
 
 
 ## Missed pickup & rescheduling (v1.12.4)
@@ -74,3 +80,12 @@ When a scheduled pickup day ends without an actual registrar-confirmed handover,
 ## Registrar pickup closing time (v1.12.5)
 
 For **both original pickup schedules and rescheduled pickups**, the registrar must assign a valid time **before 5:00 PM (Asia/Manila)**. Scheduling at or after 5:00 PM is rejected by both the UI and the Python API. Students and alumni see the reminder in their My Requests collection details and in-app event notifications. If a scheduled request has not been confirmed collected by **5:00 PM on its pickup date**, the system reports **Missed Pickup** when the next portal or staff read reconciles the status; the requester can provide a reason and request another date. The registrar schedules the replacement appointment, also before 5:00 PM. These are in-app updates, not automatic Gmail or push reminders. Existing SQLite records are preserved. See `UPGRADE_TO_V1_12_5.md` for detailed install/test steps.
+
+
+## Registrar office days and hours (v1.12.6)
+
+The registrar is modeled as **open Monday–Thursday, 8:00 AM–5:00 PM (Asia/Manila)** and **closed Friday–Sunday**. Student/Alumni document requests cannot use a Friday, Saturday or Sunday **Date Needed**; those calendar days are visibly disabled. The Python API also rejects closed days so it cannot be bypassed by direct submissions. Request forms can be submitted on any day **as long as the selected Date Needed is an allowed day**; this is not a prohibition on logging in or making an online submission during the weekend.
+
+For **first pickups and rescheduled pickups**, staff can assign a Monday–Thursday date with a time **08:00 inclusive to before 17:00** (16:59 is valid; 17:00 is invalid). The same UI and backend rules apply to both. Students requesting rescheduling submit a *reason*, and authorized registrar staff choose the new allowed date and time. Missed Pickup still triggers when the scheduled date reaches 5:00 PM without confirmed handover; there is no automatic Gmail or SMS notice. Past records and SQLite data are not modified by this policy change.
+
+See `UPGRADE_TO_V1_12_6.md` for installation and test steps. No official public holiday calendar is implemented.

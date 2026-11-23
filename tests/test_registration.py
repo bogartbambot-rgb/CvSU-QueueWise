@@ -1,4 +1,6 @@
 """Student/alumni registration, request privacy, and backward-compatible persistence."""
+from tests._office_dates import open_day, open_time
+
 from datetime import timedelta
 import sqlite3
 from pathlib import Path
@@ -36,7 +38,7 @@ def submit(c, **kwargs):
     body=dict(requester_name='Spoofed Person', requester_type='Alumni', student_number='FAKE-99999',
               document_type='Certificate of Grades', category='Regular', purpose='Job application',
               date_reason='The application deadline is approaching next week.',
-              deadline=(now().date()+timedelta(days=15)).isoformat()) | kwargs
+              deadline=open_day(15).isoformat()) | kwargs
     return c.post('/api/requests', json=body, headers=csrf(c))
 
 
@@ -128,7 +130,7 @@ def test_registered_request_release_workflow(tmp_path):
         assert c.patch(f'/api/admin/requests/{request_id}/status',json={'status':'Processing'},headers=csrf(c)).status_code==200
         assert c.patch(f'/api/admin/requests/{request_id}/status',json={'status':'Ready for Release'},headers=csrf(c)).status_code==409
         assert c.post(f'/api/admin/requests/{request_id}/decision',json={'decision':'approve'},headers=csrf(c)).status_code==200
-        pickup=(now()+timedelta(hours=2)).isoformat()
+        pickup=open_time(2).isoformat()
         assert c.post(f'/api/admin/requests/{request_id}/schedule',json={'pickup_at':pickup,'note':'Bring an ID'},headers=csrf(c)).status_code==200
         assert c.post(claim_url,headers=csrf(c)).status_code==409  # Not before the appointment
         # Simulate an appointment that has passed, preserving audit data.

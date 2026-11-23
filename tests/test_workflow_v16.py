@@ -1,4 +1,6 @@
 """Regression checks for portal links, verification and admin release approvals."""
+from tests._office_dates import open_day, open_time
+
 from datetime import date, timedelta
 from fastapi.testclient import TestClient
 from app import create_app
@@ -25,7 +27,7 @@ def test_only_registrar_can_approve_before_picking_up(tmp_path):
     with TestClient(create_app(str(tmp_path/'approval.db'),testing=True)) as c:
         assert admin(c).status_code==200
         data={'requester_name':'Maya Cruz','requester_type':'Student','student_number':'2026-34567','purpose':'Scholarship',
-              'document_type':'Transcript of Records (TOR)','category':'Regular','deadline':(date.today()+timedelta(days=5)).isoformat()}
+              'document_type':'Transcript of Records (TOR)','category':'Regular','deadline':open_day(5).isoformat()}
         r=c.post('/api/requests',json=data,headers=headers(c))
         assert r.status_code==201,r.text
         rid=r.json()['request']['id']
@@ -51,7 +53,7 @@ def test_approval_persists_across_database_restart(tmp_path):
     with TestClient(create_app(db,testing=True)) as c:
         assert admin(c).status_code==200
         data={'requester_name':'Luna Smith','requester_type':'Alumni','student_number':'2019-33333','purpose':'Employment',
-              'document_type':'Certificate of Grades','category':'Job Applicant','deadline':(date.today()+timedelta(days=5)).isoformat()}
+              'document_type':'Certificate of Grades','category':'Job Applicant','deadline':open_day(5).isoformat()}
         r=c.post('/api/requests',json=data,headers=headers(c))
         assert r.status_code==201,r.text
         rid=r.json()['request']['id']

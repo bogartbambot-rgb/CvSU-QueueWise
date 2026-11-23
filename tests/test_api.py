@@ -1,3 +1,4 @@
+from tests._office_dates import open_day, open_time
 import sqlite3
 from datetime import timedelta
 
@@ -34,7 +35,7 @@ def login(client):
 
 def payload(**kw):
     fields={'requester_name':'Juan Dela Cruz','document_type':'Certificate of Grades',
-            'category':'Graduating','deadline':(now().date()+timedelta(days=5)).isoformat()}
+            'category':'Graduating','deadline':open_day(5).isoformat()}
     fields.update(kw)
     return fields
 

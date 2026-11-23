@@ -1,4 +1,6 @@
 """The student's calendar date is the actual required-by deadline in the request."""
+from tests._office_dates import open_day, open_time
+
 from datetime import timedelta
 from fastapi.testclient import TestClient
 from app import create_app
@@ -46,7 +48,7 @@ def test_selected_needed_date_persists_and_past_date_rejected(tmp_path):
         today=now().date()
         body={'requester_name':'Test Student','requester_type':'Student','student_number':'2026-33333',
               'document_type':'Certificate of Grades','category':'Regular',
-              'purpose':'For a scholarship application','date_reason':'My scholarship deadline is near.','deadline':(today+timedelta(days=6)).isoformat()}
+              'purpose':'For a scholarship application','date_reason':'My scholarship deadline is near.','deadline':open_day(6, base=today).isoformat()}
         result=c.post('/api/requests',json=body,headers=csrf(c))
         assert result.status_code==201,result.text
         records=c.get('/api/my/requests').json()['requests']

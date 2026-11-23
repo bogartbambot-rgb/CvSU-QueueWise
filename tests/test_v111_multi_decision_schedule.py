@@ -1,6 +1,8 @@
 """v1.11 contract: one request may hold many documents; actions are role-safe.
 Tests use a temporary SQLite database and stubbed email outbox, never real users.
 """
+from tests._office_dates import open_day, open_time
+
 from datetime import timedelta
 import sqlite3
 from fastapi.testclient import TestClient
@@ -24,7 +26,7 @@ def submit(c, **changes):
              'document_types':['Certificate of Grades','Transcript of Records (TOR)'],
              'category':'Regular','purpose':'Application for a school scholarship',
              'date_reason':'The scholarship application requires records by next month.',
-             'deadline':(now().date()+timedelta(days=20)).isoformat()} | changes
+             'deadline':open_day(20).isoformat()} | changes
     return c.post('/api/requests',json=payload,headers=csrf(c))
 
 def admin(c):
@@ -35,7 +37,7 @@ def decision(c,request_id,value='approve',reason=None):
 
 def schedule(c,request_id,hours=24):
     return c.post(f'/api/admin/requests/{request_id}/schedule',json={
-        'pickup_at':(now()+timedelta(hours=hours)).isoformat(), 'note':'Bring valid school ID'},headers=csrf(c))
+        'pickup_at':((now()+timedelta(hours=hours)) if hours<0 else open_time(max(1,(hours+23)//24))).isoformat(), 'note':'Bring valid school ID'},headers=csrf(c))
 
 def test_multiple_documents_one_request_id_and_justification_migration(tmp_path):
     db=str(tmp_path/'documents.db')
@@ -137,7 +139,7 @@ def test_cancel_cannot_be_impersonated_and_status_bypass_blocked(tmp_path):
         register(c)
         ref=submit(c).json()['request']['id']
         assert c.patch(f'/api/admin/requests/{ref}/status',json={'status':'Processed'},headers=csrf(c)).status_code==401
-        assert c.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':(now()+timedelta(days=2)).isoformat()},headers=csrf(c)).status_code==401
+        assert c.post(f'/api/admin/requests/{ref}/schedule',json={'pickup_at':open_time(2).isoformat()},headers=csrf(c)).status_code==401
         assert c.post('/api/auth/logout',headers=csrf(c)).status_code==200
         assert c.post(f'/api/my/requests/{ref}/cancel',json={},headers=csrf(c)).status_code==401
 

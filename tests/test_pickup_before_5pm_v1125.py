@@ -1,4 +1,6 @@
 """5 PM Manila registrar closing-time policy for original and rescheduled pickups."""
+from tests._office_dates import open_day, open_time
+
 from datetime import datetime, timedelta
 import sqlite3
 from zoneinfo import ZoneInfo
@@ -55,7 +57,7 @@ def test_initial_and_rescheduled_pickups_both_reject_5pm_or_later(tmp_path):
             'category': 'Regular',
             'purpose': 'Scholarship',
             'date_reason': 'These are needed to complete my scholarship documents.',
-            'deadline': (now().date() + timedelta(days=30)).isoformat(),
+            'deadline': open_day(30).isoformat(),
         }, headers=csrf(student))
         assert response.status_code == 201, response.text
         ref = response.json()['request']['id']
@@ -67,7 +69,7 @@ def test_initial_and_rescheduled_pickups_both_reject_5pm_or_later(tmp_path):
             'decision': 'approve',
         }, headers=csrf(staff)).status_code == 200
 
-        day = now().date() + timedelta(days=2)
+        day = open_day(2)
         schedule = f'/api/admin/requests/{ref}/schedule'
         for hour in ('17:00', '17:01', '22:00'):
             response = staff.post(schedule, json={'pickup_at': f'{day}T{hour}'}, headers=csrf(staff))
@@ -89,7 +91,7 @@ def test_initial_and_rescheduled_pickups_both_reject_5pm_or_later(tmp_path):
             'reason': 'I had a required academic examination on the scheduled day.',
         }, headers=csrf(student))
         assert response.status_code == 200, response.text
-        next_day = now().date() + timedelta(days=4)
+        next_day = open_day(4)
         for hour in ('17:00', '18:30'):
             response = staff.post(schedule, json={'pickup_at': f'{next_day}T{hour}'}, headers=csrf(staff))
             assert response.status_code == 400, response.text
@@ -111,8 +113,8 @@ def test_pickup_reminder_shows_in_student_and_admin_ui(tmp_path):
     assert 'PICKUP_CUTOFF_NOTE' in script
     assert 'before 5:00 PM (Philippine time)' in script
     assert 'pickup-cutoff-note' in script and '.pickup-cutoff-note' in css
-    assert 'v1.12.5' in html
-    assert 'queuewise-shell-v1125' in service_worker
+    assert 'v1.12.6' in html
+    assert 'queuewise-shell-v1126' in service_worker
 
 
 def test_same_day_5pm_cutoff_changes_request_status_and_emits_one_event(tmp_path, monkeypatch):
@@ -127,7 +129,7 @@ def test_same_day_5pm_cutoff_changes_request_status_and_emits_one_event(tmp_path
             'document_type': 'Certificate of Grades', 'category': 'Regular',
             'purpose': 'Scholarship',
             'date_reason': 'I need it for a university scholarship application.',
-            'deadline': (now().date() + timedelta(days=30)).isoformat(),
+            'deadline': open_day(30).isoformat(),
         }, headers=csrf(owner))
         assert new.status_code == 201, new.text
         ref = new.json()['request']['id']
@@ -137,7 +139,7 @@ def test_same_day_5pm_cutoff_changes_request_status_and_emits_one_event(tmp_path
         assert staff.post(f'/api/admin/requests/{ref}/decision', json={
             'decision': 'approve',
         }, headers=csrf(staff)).status_code == 200
-        scheduled_day = now().date() + timedelta(days=2)
+        scheduled_day = open_day(2)
         assert staff.post(f'/api/admin/requests/{ref}/schedule', json={
             'pickup_at': f'{scheduled_day}T14:00',
         }, headers=csrf(staff)).status_code == 200

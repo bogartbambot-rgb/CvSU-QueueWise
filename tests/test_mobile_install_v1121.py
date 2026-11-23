@@ -1,4 +1,6 @@
 """Check mobile install visibility and cross-platform installation guidance."""
+from tests._office_dates import open_day, open_time
+
 from pathlib import Path
 from fastapi.testclient import TestClient
 from app import create_app
@@ -16,4 +18,4 @@ def test_mobile_install_visible_and_instructions(tmp_path):
         assert 'Add to Home Screen' in html and 'Install app' in html
         assert 'apple-touch-icon.png' in html
         assert c.get('/static/icons/apple-touch-icon.png').status_code == 200
-        assert 'queuewise-shell-v1125' in c.get('/sw.js').text
+        assert 'queuewise-shell-v1126' in c.get('/sw.js').text

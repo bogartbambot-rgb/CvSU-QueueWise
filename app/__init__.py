@@ -39,11 +39,28 @@ RESEND_COOLDOWN = timedelta(seconds=60)
 MAX_SENDS_PER_DAY = 5
 # Registrar collection window ends at 5:00 PM, Asia/Manila. New appointments
 # must be strictly before the closing hour, including rescheduled pickups.
+REGISTRAR_OPENING_HOUR = 8
 PICKUP_CLOSING_HOUR = 17
+REGISTRAR_OPEN_DAYS = frozenset((0, 1, 2, 3))  # Monday through Thursday
+REGISTRAR_HOURS = "Monday to Thursday, 8:00 AM to 5:00 PM (Philippine time)"
 PICKUP_REMINDER = (
-    "Please collect your document(s) before 5:00 PM on the scheduled date. "
-    "The Registrar's Office closes at 5:00 PM."
+    "Please collect your document(s) between 8:00 AM and before 5:00 PM "
+    "on your scheduled Monday-to-Thursday pickup date. "
+    "The Registrar's Office is closed Friday through Sunday."
 )
+
+
+def registrar_open_day(day: date) -> bool:
+    """The registrar accepts needed dates and pickup appointments Mon–Thu only."""
+    return day.weekday() in REGISTRAR_OPEN_DAYS
+
+
+def registrar_pickup_hour(appointment: datetime) -> bool:
+    """Valid appointment times: 08:00 inclusive to 17:00 exclusive, Manila."""
+    local = (appointment.replace(tzinfo=MANILA) if appointment.tzinfo is None
+             else appointment.astimezone(MANILA))
+    return registrar_open_day(local.date()) and (REGISTRAR_OPENING_HOUR <= local.hour < PICKUP_CLOSING_HOUR)
+
 ALLOWED_TRANSITIONS = {
     'Pending': {'Processing', 'Processed'},
     'Processing': {'Processed'},
@@ -251,6 +268,8 @@ def validate_new_request(item: NewRequest):
         fail(400, 'Deadline cannot be earlier than today.')
     if deadline > today + timedelta(days=365 * 3):
         fail(400, 'Deadline must be within the next three years.')
+    if not registrar_open_day(deadline):
+        fail(400, 'The Registrar is closed Friday through Sunday. Choose a Monday-to-Thursday Date Needed (office hours: 8:00 AM–5:00 PM).')
     return name, deadline.isoformat(), today.isoformat()
 
 
@@ -942,8 +961,10 @@ def create_app(db_path: str | None = None, testing: bool = False) -> FastAPI:
             fail(400, 'Choose a valid pickup date and time.')
         if appointment < now() or appointment > now() + timedelta(days=365):
             fail(400, 'Pickup must be in the future and within 365 days.')
-        if appointment.hour >= PICKUP_CLOSING_HOUR:
-            fail(400, 'Pickup appointments must be scheduled before 5:00 PM (Philippine time). The Registrar closes at 5:00 PM.')
+        if not registrar_open_day(appointment.date()):
+            fail(400, 'The Registrar is closed Friday through Sunday. Choose a Monday-to-Thursday pickup date.')
+        if not registrar_pickup_hour(appointment):
+            fail(400, 'Pickup appointments must be from 8:00 AM to before 5:00 PM (Philippine time).')
         note = ' '.join((payload.note or '').split())
         timestamp = now().isoformat()
         with connect(database) as db:

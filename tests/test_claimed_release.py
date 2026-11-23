@@ -1,4 +1,6 @@
 """Regression tests for Student/Alumni admin views and confirmed receipt."""
+from tests._office_dates import open_day, open_time
+
 import sqlite3
 from datetime import timedelta
 
@@ -21,7 +23,7 @@ def create(client, role='Student', name='Maria Santos'):
     return client.post('/api/requests', headers=csrf(client), json={
         'requester_name': name, 'requester_type': role,
         'document_type': 'Certificate of Grades', 'category': 'Regular',
-        'deadline': (now().date() + timedelta(days=12)).isoformat(),
+        'deadline': open_day(12).isoformat(),
     })
 
 
@@ -102,7 +104,7 @@ def test_process_next_can_be_marked_ready_then_claimed(tmp_path):
 def test_missing_requester_type_is_unclassified_not_misreported(tmp_path):
     with TestClient(create_app(str(tmp_path / 'legacy-api.db'), testing=True)) as c:
         payload = {'requester_name':'Ana Silva', 'document_type':'Certificate of Grades',
-                   'category':'Regular','deadline': (now().date()+timedelta(days=1)).isoformat()}
+                   'category':'Regular','deadline': open_day(1).isoformat()}
         assert c.post('/api/requests', json=payload, headers=csrf(c)).status_code == 201
         bad = c.post('/api/requests', json=payload | {'requester_type':'Teacher'}, headers=csrf(c))
         assert bad.status_code == 422

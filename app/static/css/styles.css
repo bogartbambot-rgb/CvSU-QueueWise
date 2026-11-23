@@ -119,3 +119,9 @@
 /* v1.12.5: Closing-time guidance only; keeps previous layouts intact. */
 .pickup-cutoff-note{display:block;color:var(--green-deep);background:var(--green-tint);border-left:3px solid var(--green-mid);border-radius:6px;padding:9px 11px;font-size:11.5px;line-height:1.55;margin:9px 0;white-space:normal}
 .data-table .sub-cell.pickup-cutoff-note{color:var(--green-deep);font-size:10px;max-width:255px;padding:7px 9px}
+
+/* v1.12.6: Open-day and office-hours notices, preserving existing styling. */
+.registrar-hours-note{font-size:12px;line-height:1.6;background:var(--green-tint);color:var(--green-deep);border-left:3px solid var(--green-mid);border-radius:6px;padding:9px 12px;margin:9px 0;}
+.registrar-validation-note{display:block;font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:6px;}
+.registrar-validation-note.is-invalid{color:#a2452e;font-weight:600;}
+.needed-day:disabled{cursor:not-allowed;opacity:.33;}

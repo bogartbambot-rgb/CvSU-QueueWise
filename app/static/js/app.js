@@ -13,7 +13,8 @@ const state = {
   calendarAnchor: null, selectedCalendarDay: null, pickerOpen: false, requestMode: 'mine', requestDate: '', requestDraft: null,
   helpTab: 'student', installPrompt: null, isInstalled: false, busy: false, renderToken: 0
 };
-const PICKUP_CUTOFF_NOTE = "Please claim your document(s) before 5:00 PM on the scheduled date. The Registrar's Office closes at 5:00 PM.";
+const REGISTRAR_HOURS_NOTE = "Registrar office hours: Monday–Thursday, 8:00 AM–5:00 PM (Philippine time). Closed Friday, Saturday, and Sunday.";
+const PICKUP_CUTOFF_NOTE = "Please claim your document(s) from 8:00 AM and before 5:00 PM on the scheduled Monday–Thursday date. The Registrar is closed Friday–Sunday.";
 const todayLabel = () => new Intl.DateTimeFormat('en-PH',{month:'long',day:'numeric',year:'numeric'}).format(new Date(`${state.today || new Date().toISOString().slice(0,10)}T00:00:00`));
 const datetime = text => { try { return new Intl.DateTimeFormat('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZone:'Asia/Manila'}).format(new Date(text)); } catch { return '—'; } };
 const dayLabel = text => { try { return new Intl.DateTimeFormat('en-PH',{month:'short',day:'numeric',year:'numeric'}).format(new Date(`${text}T00:00:00`)); } catch { return '—'; } };
@@ -358,9 +359,16 @@ function requesterDashboard() {
 // Use local calendar dates and never convert a user's chosen day into UTC.
 const dateKey = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 const parseCalendarDate = key => /^\d{4}-\d{2}-\d{2}$/.test(key||'') ? new Date(Number(key.slice(0,4)), Number(key.slice(5,7))-1, Number(key.slice(8,10))) : new Date();
+const registrarDayOpen = key => /^\d{4}-\d{2}-\d{2}$/.test(key||'') && [1,2,3,4].includes(parseCalendarDate(key).getDay());
+const nextOpenDay = key => { const d=parseCalendarDate(key); for(let i=0;i<7 && ![1,2,3,4].includes(d.getDay());i++)d.setDate(d.getDate()+1); return dateKey(d); };
+const registrarPickupValid = value => {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value||'')) return false;
+  const day=value.slice(0,10), hour=Number(value.slice(11,13));
+  return registrarDayOpen(day) && hour>=8 && hour<17;
+};
 function pickerMonthMarkup() {
   const today = state.today || dateKey(new Date());
-  const chosen = state.selectedCalendarDay || state.requestDate || today;
+  const chosen = state.selectedCalendarDay || state.requestDate || nextOpenDay(today);
   const focus = parseCalendarDate(state.calendarAnchor || chosen);
   const title = new Intl.DateTimeFormat('en-PH', {month:'long',year:'numeric'}).format(focus);
   const first = new Date(focus.getFullYear(), focus.getMonth(),1);
@@ -373,14 +381,15 @@ function pickerMonthMarkup() {
   const calendarCellCount = Math.ceil((monthOffset+daysInMonth)/7)*7;
   const cells=Array.from({length:calendarCellCount},(_,i)=>{
     const date=new Date(start);date.setDate(start.getDate()+i);
-    const key=dateKey(date), disabled=key<today||key>limit;
+    const key=dateKey(date), closed=!registrarDayOpen(key), disabled=key<today||key>limit||closed;
     const outside=date.getMonth()!==focus.getMonth();
-    return `<button type="button" class="needed-day ${outside?'outside':''} ${key===today?'is-today':''} ${key===chosen?'is-selected':''}" data-needed-day="${key}" aria-label="${dayLabel(key)}${disabled?', unavailable':''}" aria-pressed="${key===chosen}" ${disabled?'disabled':''}><span>${date.getDate()}</span></button>`;
+    return `<button type="button" class="needed-day ${outside?'outside':''} ${key===today?'is-today':''} ${key===chosen?'is-selected':''}" data-needed-day="${key}" aria-label="${dayLabel(key)}${closed?', registrar closed Friday to Sunday':disabled?', unavailable':''}" title="${closed?'Registrar closed Friday–Sunday':''}" aria-pressed="${key===chosen}" ${disabled?'disabled':''}><span>${date.getDate()}</span></button>`;
   }).join('');
   return `<div class="needed-calendar-head"><div><p class="eyebrow">SELECT DATE NEEDED</p><h3>${title}</h3></div><div class="needed-calendar-controls"><button type="button" class="needed-calendar-today" data-needed-nav="today">Today</button><button type="button" data-needed-nav="prev" aria-label="Previous month">‹</button><button type="button" data-needed-nav="next" aria-label="Next month">›</button></div></div>
    <div class="needed-weekdays">${['M','T','W','T','F','S','S'].map((x,i)=>`<span aria-label="${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i]}">${x}</span>`).join('')}</div>
    <div class="needed-day-grid">${cells}</div>
-   <div class="needed-calendar-footer"><div><span>YOUR CHOICE</span><strong>${dayLabel(chosen)}</strong><small>This is your requested date, not a promised release date.</small></div><button class="button primary" type="button" data-action="apply-needed-date" ${chosen<today||chosen>limit?'disabled':''}>${icon('check')} Use this date</button></div>`;
+   <p class="registrar-hours-note" role="note">${REGISTRAR_HOURS_NOTE} Friday–Sunday dates are unavailable.</p>
+   <div class="needed-calendar-footer"><div><span>YOUR CHOICE</span><strong>${dayLabel(chosen)}</strong><small>This is your requested date, not a promised release date.</small></div><button class="button primary" type="button" data-action="apply-needed-date" ${chosen<today||chosen>limit||!registrarDayOpen(chosen)?'disabled':''}>${icon('check')} Use this date</button></div>`;
 }
 function dateNeededWidget() {
   const selected=state.requestDate;
@@ -388,7 +397,7 @@ function dateNeededWidget() {
     <input type="hidden" id="dateNeededValue" name="deadline" value="${escapeHtml(selected)}">
     <div class="needed-date-box"><span class="needed-calendar-symbol">${icon('calendar')}</span><div class="needed-date-copy"><small>WHEN DO YOU NEED YOUR DOCUMENT?</small><strong id="dateNeededLabel">${selected?dayLabel(selected):'Select your preferred date'}</strong><span>Registrar staff will see this date when reviewing your request.</span></div><button type="button" class="button outline" id="openDatePicker" data-action="toggle-needed-picker" aria-expanded="${state.pickerOpen}" aria-controls="neededCalendarContent">${icon('calendar')} ${selected?'Change date':'Choose date'}</button></div>
     <div class="needed-calendar ${state.pickerOpen?'':'hidden'}" id="neededCalendarContent">${pickerMonthMarkup()}</div>
-    <small>Select today or a future date (up to 3 years ahead). This date affects the priority score, but release still needs registrar approval.</small>
+    <small>Select a Monday–Thursday Date Needed (up to 3 years ahead). Friday, Saturday and Sunday are closed. This date affects the priority score, but release still needs registrar approval.</small><p class="registrar-hours-note" role="note">${REGISTRAR_HOURS_NOTE} Requests with Friday–Sunday needed dates cannot be submitted.</p>
   </div>`;
 }
 function redrawNeededPicker(){
@@ -398,7 +407,7 @@ function redrawNeededPicker(){
   const button=$('#openDatePicker');if(button){button.setAttribute('aria-expanded',String(state.pickerOpen));button.innerHTML=`${icon('calendar')} ${state.requestDate?'Change date':'Choose date'}`;}
 }
 function moveNeededMonth(direction){
-  if(direction==='today'){state.calendarAnchor=state.today;state.selectedCalendarDay=state.today;}
+  if(direction==='today'){state.selectedCalendarDay=nextOpenDay(state.today);state.calendarAnchor=state.selectedCalendarDay;}
   else {
     const focus=parseCalendarDate(state.calendarAnchor || state.today);
     focus.setDate(1); focus.setMonth(focus.getMonth()+(direction==='prev'?-1:1));
@@ -414,6 +423,7 @@ function chooseNeededDate(day){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(day||'') || day<today || day>dateKey(max)) {
     toast('Choose today or a future date within three years.',true);return;
   }
+  if(!registrarDayOpen(day)){toast('The Registrar is closed Friday–Sunday. Please choose Monday–Thursday.',true);return;}
   state.selectedCalendarDay=day;
   state.calendarAnchor=day;
   redrawNeededPicker();
@@ -423,6 +433,7 @@ function applyNeededDate(){
   const today=state.today || dateKey(new Date());
   const max=new Date(parseCalendarDate(today));max.setFullYear(max.getFullYear()+3);
   if(!day || day<today || day>dateKey(max)){toast('Choose a valid date first.',true);return;}
+  if(!registrarDayOpen(day)){toast('The Registrar is closed Friday–Sunday. Choose Monday–Thursday.',true);return;}
   state.requestDate=day;state.pickerOpen=false;
   const input=$('#dateNeededValue'), label=$('#dateNeededLabel');
   if(input)input.value=day;
@@ -523,7 +534,8 @@ function reviewRequestHtml(r) {
   const canClaim=!closed&&r.approved_at&&!canReschedule;
   const deadlineReason=escapeHtml(r.date_reason||'Legacy record — no explanation provided');
   const earliest=new Date(Date.now()+24*60*60*1000);
-  earliest.setHours(15, 0, 0, 0); // A 3 PM example within the registrar's pre-5 PM collection hours.
+  earliest.setHours(15, 0, 0, 0); // Suggest an open weekday at 3 PM, not Friday–Sunday.
+  while(![1,2,3,4].includes(earliest.getDay()))earliest.setDate(earliest.getDate()+1);
   const localValue=String(earliest.getFullYear())+'-'+String(earliest.getMonth()+1).padStart(2,'0')+'-'+String(earliest.getDate()).padStart(2,'0')+'T'+String(earliest.getHours()).padStart(2,'0')+':'+String(earliest.getMinutes()).padStart(2,'0');
   return `<div class="review-card">
     <div class="review-overview"><span class="eyebrow">REQUEST DETAILS · ${escapeHtml(r.public_id)}</span><h3>${escapeHtml(r.requester_name)} <span class="requester-pill">${escapeHtml(requesterLabel(r))}</span></h3>
@@ -533,7 +545,7 @@ function reviewRequestHtml(r) {
       ${r.pickup_at?`<div class="pickup-summary"><strong>${icon('calendar')} ${canReschedule?'Previous pickup':'Pickup'}: ${datetime(r.pickup_at)}</strong><p>${escapeHtml(r.pickup_note||'No additional instructions')}</p><p class="pickup-cutoff-note">${PICKUP_CUTOFF_NOTE}</p></div>`:''}${r.reschedule_reason?`<p class="decision-alert"><strong>Reschedule request:</strong> ${escapeHtml(r.reschedule_reason)}</p>`:''}${status==='Missed Pickup'?`<p class="decision-alert">The scheduled pickup date reached the 5:00 PM closing time without confirmed collection. Assign a new schedule.</p>`:''}
     </div><div class="review-actions">
       ${canDecide?`<h3>Approve or decline</h3><p class="panel-subtitle">Approve to begin preparing the documents. When declining, a clear reason is required and will be visible to the requester.</p><label class="form-label">Decline reason<textarea id="reviewDeclineReason" rows="3" minlength="10" maxlength="500" placeholder="Explain why the request cannot be accepted."></textarea></label><div class="review-button-pair">${button('Approve request','approve-request','primary',`data-id="${escapeHtml(r.public_id)}"`)}${button('Decline request','decline-request','outline',`data-id="${escapeHtml(r.public_id)}"`)}</div>`:''}
-      ${canSchedule?`<h3>${canReschedule?'Reschedule document collection':'Schedule document collection'}</h3><p class="panel-subtitle">The registrar chooses when documents can be picked up. The requested Date Needed is a preference, not a guaranteed pickup date.</p><p class="pickup-cutoff-note" role="note">${PICKUP_CUTOFF_NOTE} Choose an appointment time before 5:00 PM (Philippine time).</p><label class="form-label">Scheduled pickup date & time<input id="reviewPickupAt" type="datetime-local" required value="${localValue}"></label><label class="form-label">Pickup instructions (optional)<textarea id="reviewPickupNote" rows="2" maxlength="500" placeholder="e.g. Bring a valid ID. Claim at Registrar Window 2."></textarea></label>${button(canReschedule?'Confirm new pickup schedule':'Confirm pickup schedule','schedule-pickup','primary',`data-id="${escapeHtml(r.public_id)}"`)}`:''}
+      ${canSchedule?`<h3>${canReschedule?'Reschedule document collection':'Schedule document collection'}</h3><p class="panel-subtitle">The registrar chooses when documents can be picked up. The requested Date Needed is a preference, not a guaranteed pickup date.</p><p class="pickup-cutoff-note" role="note">${PICKUP_CUTOFF_NOTE} ${REGISTRAR_HOURS_NOTE} Choose a Monday–Thursday appointment from 8:00 AM and before 5:00 PM (Philippine time).</p><label class="form-label">Scheduled pickup date & time<input id="reviewPickupAt" type="datetime-local" required value="${localValue}" step="60"><small id="pickupScheduleWarning" class="registrar-validation-note" role="status">Friday–Sunday dates and times outside 8:00 AM–before 5:00 PM are unavailable.</small></label><label class="form-label">Pickup instructions (optional)<textarea id="reviewPickupNote" rows="2" maxlength="500" placeholder="e.g. Bring a valid ID. Claim at Registrar Window 2."></textarea></label>${button(canReschedule?'Confirm new pickup schedule':'Confirm pickup schedule','schedule-pickup','primary',`data-id="${escapeHtml(r.public_id)}"`)}`:''}
       ${canClaim?`<h3>Confirm actual collection</h3><p class="panel-subtitle">Pickup is scheduled for <strong>${r.pickup_at?datetime(r.pickup_at):'not recorded (legacy)'}</strong>. Only confirm after the requester has actually received every document.</p>${button('Mark as Claimed','mark-claimed','primary',`data-id="${escapeHtml(r.public_id)}"`)}`:''}
       ${closed?`<div class="tip-box">${icon('shield')}<span>This request is finalized. Its history is preserved in SQLite.</span></div>`:''}
     </div></div>`;
@@ -607,6 +619,10 @@ async function submitRequest(form) {
     toast('Choose a valid Date Needed in your document request form before submitting.',true);
     return;
   }
+  if (!registrarDayOpen(data.deadline)) {
+    toast('Cannot submit: The Registrar is closed Friday–Sunday. Choose a Monday–Thursday Date Needed.',true);
+    return;
+  }
   state.busy=true;
   const submit=$('#submitRequestButton'); if(submit)submit.disabled=true;
   try {
@@ -634,7 +650,7 @@ async function executeAction(action, element) {
   if(action==='toggle-needed-picker') {
     if(!isRequester())throw Error('Student or Alumni account required.');
     state.pickerOpen=!state.pickerOpen;
-    if(state.pickerOpen){state.selectedCalendarDay=state.requestDate||state.today;state.calendarAnchor=state.selectedCalendarDay;}
+    if(state.pickerOpen){state.selectedCalendarDay=state.requestDate||nextOpenDay(state.today);state.calendarAnchor=state.selectedCalendarDay;}
     redrawNeededPicker(); return;
   }
   if(action==='apply-needed-date') return applyNeededDate();
@@ -708,7 +724,8 @@ async function executeAction(action, element) {
     const pickup_at=$('#reviewPickupAt')?.value;
     const note=$('#reviewPickupNote')?.value||'';
     if(!pickup_at)throw Error('Choose a pickup date and time.');
-    if(Number(pickup_at.split('T')[1]?.slice(0,2)) >= 17)throw Error('Please choose a pickup time before 5:00 PM. The Registrar closes at 5:00 PM.');
+    if(!registrarDayOpen(pickup_at.slice(0,10)))throw Error('The Registrar is closed Friday–Sunday. Please choose a Monday–Thursday pickup date.');
+    if(!registrarPickupValid(pickup_at))throw Error('Pickup must be between 8:00 AM and before 5:00 PM (Philippine time), Monday–Thursday.');
     if(!confirm(`Confirm ${id} pickup schedule for ${pickup_at}?`))return;
     const response=await api(`/api/admin/requests/${encodeURIComponent(id)}/schedule`,{method:'POST',body:{pickup_at,note}});
     closeModal('reviewModal');toast(response.message);return refreshCurrent();
@@ -842,6 +859,14 @@ document.addEventListener('input', event=>{
   if(event.target.id==='claimSearch'){state.claimSearch=event.target.value;renderClaimedRows();}
 });
 document.addEventListener('change',event=>{
+  if(event.target.id==='reviewPickupAt'){
+    const warning=$('#pickupScheduleWarning');
+    if(warning){
+      const value=event.target.value;
+      warning.textContent=!value?'Choose a pickup date and time.':!registrarDayOpen(value.slice(0,10))?'Registrar closed Friday–Sunday. Choose Monday–Thursday.':!registrarPickupValid(value)?'Outside office hours. Choose 8:00 AM to before 5:00 PM.':'Valid registrar date and time (Monday–Thursday).';
+      warning.classList.toggle('is-invalid',!registrarPickupValid(value));
+    }
+  }
   if(event.target.id==='staffFilter'){state.filter=event.target.value;renderStaffRows();}
   if(event.target.id==='requesterFilter'){state.requesterFilter=event.target.value;renderStaffRows();}
 });

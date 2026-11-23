@@ -1,4 +1,6 @@
 """Regression tests for separated names, safe migration, and request flow."""
+from tests._office_dates import open_day, open_time
+
 from datetime import timedelta
 import sqlite3
 
@@ -36,7 +38,7 @@ def test_split_name_registration_verification_profile_and_request(tmp_path, role
         assert client.post('/api/auth/requester-login',json={'email':'student@example.com','password':PASS},headers=csrf(client)).status_code==200
         assert client.get('/api/bootstrap').json()['user']['display_name']=='Mary Jane A. Dela Cruz'
         request_payload={'requester_name':'Mary Jane A. Dela Cruz', 'document_type':'Transcript of Records',
-                         'category':'Regular', 'purpose':'Scholarship application', 'deadline':(now().date()+timedelta(days=7)).isoformat(),
+                         'category':'Regular', 'purpose':'Scholarship application', 'deadline':open_day(7).isoformat(),
                          'date_reason':'Enrollment documentation is due next week.'}
         # Some document lists use TOR rather than spelled-out name.
         request_payload['document_type']=client.get('/api/bootstrap').json()['documents'][0]
@@ -108,5 +110,5 @@ def test_frontend_has_three_field_controls_and_updated_pwa(tmp_path):
         assert 'name="last_name"' in js
         assert '<label class="form-label">Full name ' not in js
         assert 'name="full_name"' not in js.split('function registerPage()')[1].split('function switchRegistrationRole(')[0]
-        assert 'queuewise-shell-v1125' in client.get('/sw.js').text
-        assert 'v1.12.5' in client.get('/').text
+        assert 'queuewise-shell-v1126' in client.get('/sw.js').text
+        assert 'v1.12.6' in client.get('/').text

@@ -3,6 +3,8 @@
 Backend owns the filter; client-supplied requester name and category cannot expose
 another person's records. Student and Alumni users share no private list.
 """
+from tests._office_dates import open_day, open_time
+
 from datetime import timedelta
 from fastapi.testclient import TestClient
 from app import create_app
@@ -24,7 +26,7 @@ def create_request(client, doc='Certificate of Grades', purpose='Scholarship pap
     body={'requester_name':'NOT MY NAME','requester_type':'Alumni','student_number':'OTHER-NO',
           'document_type':doc,'category':'Regular','purpose':purpose,
           'date_reason':'The document is required for a scheduled academic deadline.',
-          'deadline':(now().date()+timedelta(days=10)).isoformat()}
+          'deadline':open_day(10).isoformat()}
     response=client.post('/api/requests',json=body,headers=csrf(client))
     assert response.status_code==201,response.text
     return response.json()['request']['id']
@@ -72,7 +74,7 @@ def test_production_rejects_guest_submissions_without_verified_account(tmp_path)
     with TestClient(create_app(str(tmp_path/'production.db'),testing=False)) as c:
         body={'requester_name':'Guest User','requester_type':'Student','student_number':'2026-45678',
               'document_type':'Certificate of Grades','category':'Regular','purpose':'Enrollment records',
-              'deadline':(now().date()+timedelta(days=5)).isoformat()}
+              'deadline':open_day(5).isoformat()}
         result=c.post('/api/requests',json=body,headers=csrf(c))
         assert result.status_code==401
         assert 'verify your email' in result.json()['error']
